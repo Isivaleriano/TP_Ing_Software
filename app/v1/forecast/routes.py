@@ -1,13 +1,17 @@
-"""Routes related to operations of forecast."""
+"""Rutas relacionadas con operaciones de forecast."""
 
 from typing import Dict
+
 import httpx
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from datetime import date
+from app.v1.security import get_api_key
 
 router = APIRouter()
 
+
 @router.get("/forecast")
-def get_forecast(id_well: str, date_start: str, date_end: str):
+def get_forecast(id_well: str, date_start: date, date_end: date, api_key: str = Depends(get_api_key)):
     """Obtiene pronónstico base para un horizonte de tiempo y nivel de desagregación.
 
     :param id_well: Identificador del pozo.
