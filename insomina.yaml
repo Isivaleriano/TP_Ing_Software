@@ -1,0 +1,94 @@
+type: collection.insomnia.rest/5.0
+schema_version: "5.1"
+name: Oil & Gas Forecast API
+meta:
+  id: wrk_6b15d799edc8409ea7a0c65e09c9c8e2
+  created: 1773326806011
+  modified: 1773326806011
+  description: ""
+collection:
+  - url: http://127.0.0.1:8000/api/v1/wells
+    name: 1 - get_wells
+    meta:
+      id: req_7e47f86b17904bfc98dfb9d7348b62fd
+      created: 1773326820347
+      modified: 1773326961223
+      isPrivate: false
+      description: ""
+      sortKey: -1773326820347
+    method: GET
+    parameters:
+      - name: date_query
+        value: 2023-10-01
+        description: ""
+        disabled: false
+    headers:
+      - name: User-Agent
+        value: insomnia/12.4.0
+        description: ""
+        disabled: false
+      - name: X-API-Key
+        value: abcdef12345
+        description: ""
+        disabled: false
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://127.0.0.1:8000/api/v1/forecast
+    name: 2 - get_forecast
+    meta:
+      id: req_bf8112adfdde435ba7c2b3c273f0d2fa
+      created: 1773326974352
+      modified: 1773327051164
+      isPrivate: false
+      description: ""
+      sortKey: -1773326974352
+    method: GET
+    parameters:
+      - name: id_well
+        value: POZO-001
+        description: ""
+        disabled: false
+      - name: date_start
+        value: 2023-10-01
+        description: ""
+        disabled: false
+      - name: date_end
+        value: 2023-10-10
+        description: ""
+        disabled: false
+    headers:
+      - name: User-Agent
+        value: insomnia/12.4.0
+        description: ""
+        disabled: false
+      - name: X-API-Key
+        value: abcdef12345
+        description: ""
+        disabled: false
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_08c90aaf59669eef9b3df116684922016890a4ea
+    created: 1773326806013
+    modified: 1773326806013
+environments:
+  name: Base Environment
+  meta:
+    id: env_08c90aaf59669eef9b3df116684922016890a4ea
+    created: 1773326806012
+    modified: 1773326806012
+    isPrivate: false
