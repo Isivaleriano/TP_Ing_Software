@@ -3,8 +3,8 @@
 from typing import Dict
 from fastapi import FastAPI
 
-from app.v1.forecast.routes import router as forecast_router
-from app.v1.wells.routes import router as wells_router
+from api.v1.forecast.routes import router as forecast_router
+from api.v1.wells.routes import router as wells_router
 
 app = FastAPI(title="Oil & Gas Forecast API")
 

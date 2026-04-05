@@ -4,7 +4,7 @@ from typing import Dict
 
 import httpx
 from fastapi import APIRouter, Depends
-from app.v1.security import get_api_key
+from api.v1.security import get_api_key
 from datetime import date
 
 router = APIRouter()
