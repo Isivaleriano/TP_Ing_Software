@@ -1,4 +1,4 @@
-"""Tests para endpoint de forecast."""
+"""Tests for forecast endpoint"""
 
 import unittest
 from fastapi.testclient import TestClient
@@ -21,7 +21,7 @@ class TestForecast(unittest.TestCase):
         """Checks that ``GET /hello`` returns hello"""
         response = self.client.get("/hello")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"message": "Hola mundo!"})
+        self.assertEqual(response.json(), {"message": "Hello world!"})
 
     def test_not_found_route(self):
         """A non-existent route must return 404"""

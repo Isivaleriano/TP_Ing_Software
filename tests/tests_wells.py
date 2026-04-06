@@ -1,4 +1,4 @@
-"""Tests para endpoint de wells."""
+"""Tests for wells endpoint"""
 
 import unittest
 from fastapi.testclient import TestClient

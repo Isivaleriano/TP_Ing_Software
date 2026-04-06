@@ -1,4 +1,4 @@
-"""Tests para revisar seguridad."""
+"""Tests for security"""
 
 import unittest
 from fastapi.testclient import TestClient
@@ -26,7 +26,7 @@ class TestSecurity(unittest.TestCase):
         self.assertEqual(context.exception.status_code, 403)
         self.assertEqual(
             context.exception.detail,
-            "Acceso denegado. API Key inválida o faltante en el header."
+            "Access denied. Invalid or missing API key in header."
         )
 
     def test_none_key(self):
@@ -37,7 +37,7 @@ class TestSecurity(unittest.TestCase):
         self.assertEqual(context.exception.status_code, 403)
         self.assertEqual(
             context.exception.detail,
-            "Acceso denegado. API Key inválida o faltante en el header."
+            "Access denied. Invalid or missing API key in header."
         )
 
     def test_forecast_valid_api_key(self):
@@ -77,7 +77,7 @@ class TestSecurity(unittest.TestCase):
                 "date_end": "2026-05-25",
             },
             headers={
-                "X-API-Key": "clave-incorrecta",
+                "X-API-Key": "incorrect-key",
             },
         )
         self.assertEqual(response.status_code, 403)
@@ -96,7 +96,7 @@ class TestSecurity(unittest.TestCase):
         self.assertEqual(response.status_code, 403)
         self.assertEqual(
             body["detail"],
-            "Acceso denegado. API Key inválida o faltante en el header."
+            "Access denied. Invalid or missing API key in header."
         )
 
     def test_wells_with_valid_api_key(self):
@@ -130,7 +130,7 @@ class TestSecurity(unittest.TestCase):
                 "date_query": "2026-05-23",
             },
             headers={
-                "X-API-Key": "clave-incorrecta",
+                "X-API-Key": "incorrect-key",
             },
         )
         self.assertEqual(response.status_code, 403)
@@ -147,5 +147,5 @@ class TestSecurity(unittest.TestCase):
         self.assertEqual(response.status_code, 403)
         self.assertEqual(
             body["detail"],
-            "Acceso denegado. API Key inválida o faltante en el header."
+            "Access denied. Invalid or missing API key in header."
         )
