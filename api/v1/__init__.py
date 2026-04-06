@@ -1,1 +1,1 @@
-"""Paquete principal de la aplicacion."""
+"""Main application package."""
