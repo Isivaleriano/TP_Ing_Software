@@ -1,7 +1,6 @@
 """Routes related to operations of forecast."""
 
 from typing import Dict
-
 import httpx
 from fastapi import APIRouter, Depends
 from datetime import date
@@ -12,10 +11,11 @@ router = APIRouter()
 
 @router.get("/forecast")
 def get_forecast(id_well: str, date_start: date, date_end: date, api_key: str = Depends(get_api_key)):
-    """Obtiene pronónstico base para un horizonte de tiempo y nivel de desagregación.
+    """Gets baseline forecast for a given time and level of disaggregation.
 
-    :param id_well: Identificador del pozo.
-    :param date_start: Inicia el pozo.
+    :param id_well: well identifier.
+    :param date_start: Start date well.
+    :param date_end: End date well.
     :return: id_well, data.
     """
     data = [

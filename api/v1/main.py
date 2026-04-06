@@ -13,8 +13,8 @@ app.include_router(wells_router, prefix="/api/v1")
 
 @app.get("/hello")
 def root() -> Dict[str, str]:
-    """Devuelve un saludo.
+    """Returns Hello Message.
 
-    :return: Mensaje de saludo.
+    :return: Hello message
     """
-    return {"message": "Hola mundo!"}
+    return {"message": "Hello world!"}
