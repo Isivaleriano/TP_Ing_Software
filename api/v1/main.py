@@ -1,6 +1,5 @@
 """Main module of the app FastAPI."""
 
-from typing import Dict
 from fastapi import FastAPI
 
 from api.v1.forecast.routes import router as forecast_router

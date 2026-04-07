@@ -1,7 +1,5 @@
 """Routes related to operations of forecast."""
 
-from typing import Dict
-import httpx
 from fastapi import APIRouter, Depends
 from datetime import date
 from api.v1.security import get_api_key
