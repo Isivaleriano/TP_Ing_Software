@@ -41,7 +41,7 @@ class TestSecurity(unittest.TestCase):
         )
 
     def test_forecast_valid_api_key(self):
-        """Forecast with invalid API must return 200"""
+        """Forecast with valid API must return 200"""
         response = self.client.get(
             route_forecast,
             params={
