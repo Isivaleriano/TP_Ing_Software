@@ -108,3 +108,54 @@ curl -X GET "http://localhost:8000/api/v1/forecast?id_well=POZO-001&date_start=2
 ## Authentication
 
 All endpoints are protected by an API Key sent via HTTP header:
+
+X-API-Key: abcdef12345
+
+Requests without a valid key return HTTP 403 Forbidden.
+
+## Deployment
+
+The API is deployed on AWS EC2 using Docker. The deployment is automated 
+via GitHub Actions — every push to `main` that passes tests automatically 
+builds, publishes and deploys the new image to the EC2 instance.
+
+> **Note:** The EC2 instance has a dynamic public IP that changes on restart.
+> Contact the team for the current URL during the correction period.
+
+## CI/CD
+
+Two GitHub Actions workflows are configured:
+
+- **tests.yml** — runs on every push and pull request. Executes unit tests and linter.
+- **docker_publish.yml** — runs on push to `main`. Builds and publishes the Docker image to GitHub Container Registry, then deploys automatically to EC2.
+
+## Running tests
+
+```bash
+python -m unittest discover -s tests
+```
+
+## Project structure
+
+TP_Ing_Software/
+├── .github/
+│   └── workflows/
+│       ├── docker_publish.yml
+│       └── tests.yml
+├── api/
+│   └── v1/
+│       ├── forecast/
+│       │   └── routes.py
+│       ├── wells/
+│       │   └── routes.py
+│       ├── Dockerfile
+│       ├── main.py
+│       ├── requirements.txt
+│       └── security.py
+├── tests/
+│   ├── tests_forecast.py
+│   ├── tests_security.py
+│   └── tests_wells.py
+├── insomnia.yaml
+├── openapi.yaml
+└── README.md
