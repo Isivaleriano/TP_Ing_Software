@@ -130,10 +130,59 @@ Two GitHub Actions workflows are configured:
 - **docker_publish.yml** — runs on push to `main`. Builds and publishes the Docker image to GitHub Container Registry, then deploys automatically to EC2.
 
 ## Running tests
-
+Functional tests of endpoints and security tests were implemented to validate API Key authentication across all endpoints.
+To run all tests:
 ```bash
 python -m unittest discover -s tests
 ```
+To run a specific test file:
+```bash
+python -m unittest discover -s tests/tests_forecast.py
+```
+To run a specific test:
+```bash
+python -m unittest discover -s tests/tests_forecast.py/test_status_code_ok
+```
+
+## Dashboard
+
+A monitoring dashboard was implemented using **Prometheus** and **Grafana** to ensure system performance, reliability and observability.
+
+### Monitoring Architecture
+
+- **FastAPI** exposes metrics via `/metrics` using `prometheus-fastapi-instrumentator`
+- **Prometheus** scrapes metrics from the API
+- **Grafana** visualizes the data and manages alerting
+
+The system is orchestrated using Docker. 
+
+## System Performance Metrics
+
+The API exposes metrics at:
+```bash
+http://localhost:8000/metrics
+```
+
+To verify that Prometheus is correctly scraping the API, access:
+```bash
+http://localhost:9090/targets
+```
+
+#### How to open the Dashboard?
+
+1. Start all services (API + Prometheus + Grafana). It can be easily done by docker compose:
+```bash
+docker compose up
+```
+
+2. Open Grafana in browser:
+```bash
+http://localhost:3000
+```
+
+3. Login:
+- User: admin
+- Password: Software_tp
 
 ## Project structure
 
