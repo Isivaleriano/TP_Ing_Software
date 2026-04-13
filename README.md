@@ -186,6 +186,7 @@ http://localhost:3000
 
 ## Project structure
 
+```bash
 TP_Ing_Software/
 ├── .github/
 │   └── workflows/
@@ -205,6 +206,10 @@ TP_Ing_Software/
 │   ├── tests_forecast.py
 │   ├── tests_security.py
 │   └── tests_wells.py
+├── dashboard/
+│   └── prometheus/
+│       └── prometheus.yml
+├── docker-compose.yml
 ├── insomnia.yaml
 ├── openapi.yaml
 └── README.md
