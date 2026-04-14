@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from api.v1.forecast.routes import router as forecast_router
 from api.v1.wells.routes import router as wells_router
 from prometheus_fastapi_instrumentator import Instrumentator
+from prometheus_client import Counter
 
 app = FastAPI(title="Oil & Gas Forecast API")
 
