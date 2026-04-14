@@ -1,0 +1,69 @@
+groups:
+  - name: api-disponibilidad
+    interval: 30s
+    rules:
+
+      - alert: ServicioCaido
+        expr: up{job="api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "api no responde"
+          description: >
+            El servicio api lleva más de 1 minuto sin responder.
+            Revisar con: docker compose logs api
+
+      - alert: ErrorRateAlto
+        expr: >
+          sum(rate(http_request_duration_seconds_count{status_code=~"5..",job="api"}[5m]))
+          /
+          sum(rate(http_request_duration_seconds_count{job="api"}[5m]))
+          > 0.01
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Error rate de la API supera el 1%"
+          description: >
+            La tasa de errores HTTP 5xx es {{ $value | humanizePercentage }}
+            en los últimos 5 minutos (KPI: < 1%).
+
+  - name: api-performance
+    interval: 30s
+    rules:
+
+      - alert: LatenciaForecastAlta
+        expr: >
+          histogram_quantile(
+            0.95,
+            sum(rate(forecast_duration_seconds_bucket[5m])) by (le)
+          ) > 5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Latencia p95 de forecast supera KPI"
+          description: >
+            El percentil 95 de latencia de forecast es {{ $value | humanizeDuration }},
+            superando el KPI de 5 segundos.
+
+  - name: sistema-recursos
+    interval: 60s
+    rules:
+
+      - alert: CPUAltaSostenida
+        expr: >
+          100 - (
+            avg by(instance) (
+              rate(node_cpu_seconds_total{mode="idle",job="node-exporter"}[5m])
+            ) * 100
+          ) > 80
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: "Uso de CPU del host supera 80%"
+          description: >
+            El uso de CPU del host es {{ $value | humanize }}%
+            de forma sostenida en los últimos 5 minutos.

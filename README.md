@@ -177,7 +177,7 @@ docker compose up
 
 2. Open Grafana in browser:
 ```bash
-http://localhost:3000
+http://localhost:3001
 ```
 
 3. Login:
