@@ -172,17 +172,26 @@ http://localhost:9090/targets
 
 1. Start all services (API + Prometheus + Grafana). It can be easily done by docker compose:
 ```bash
-docker compose up
+docker compose up --build
 ```
 
 2. Open Grafana in browser:
 ```bash
-http://localhost:3000
+http://localhost:3001
 ```
 
 3. Login:
 - User: admin
 - Password: Software_tp
+
+### Alerts
+An alerting system is in place to detect abnormal system behavior, including service outages, high error rates, and performance degradation.
+Note: Email notifications are not fully configured due to AWS cost constraints. The system is prepared to support notification channels if needed.
+
+#### Dashboard Notes
+- Metrics are updated in near real-time
+- Some panels require continuous traffic to display values
+- To test alerting behavior, manual requests or simulated failures can be performed
 
 ## Project structure
 
@@ -202,13 +211,26 @@ TP_Ing_Software/
 │       ├── main.py
 │       ├── requirements.txt
 │       └── security.py
+├── monitoring/
+│   ├── grafana/
+│   │   ├── dasboards/
+│   │   │   └── monitoring.json
+│   │   └── provisioning
+│   │       ├── alerting
+│   │       │   ├── contactpoint.yml
+│   │       │   └── notificationpolicies.yml               
+│   │       ├── dashboards
+│   │       │   └── dashboard.yml
+│   │       └── datasources
+│   │           └── prometheus.yml
+│   └── prometheus/
+│       ├──rules/
+│       │   └── alerts.yml
+│       └── prometheus.yml
 ├── tests/
 │   ├── tests_forecast.py
 │   ├── tests_security.py
 │   └── tests_wells.py
-├── dashboard/
-│   └── prometheus/
-│       └── prometheus.yml
 ├── docker-compose.yml
 ├── insomnia.yaml
 ├── openapi.yaml

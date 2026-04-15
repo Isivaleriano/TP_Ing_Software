@@ -1,0 +1,93 @@
+groups:
+  - name: api-availability
+    interval: 30s
+    rules:
+
+      - alert: Service Down
+        expr: up{job="api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "api not responing"
+          description: >
+            The API service has been unresponsive for more than 1 minute.
+            Check with: docker compose logs api
+
+      - alert: High Error Rate
+        expr: >
+          sum(rate(http_request_duration_seconds_count{status=~"5..",job="api"}[5m]))
+          /
+          sum(rate(http_request_duration_seconds_count{job="api"}[5m]))
+          > 0.01
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Error rate of API is greater than 1%"
+          description: >
+            The HTTP 5xx error rate is too high in the last 5 minutes (KPI: < 1%).
+
+  - name: api-performance
+    interval: 30s
+    rules:
+
+      - alert: High Forecast Latency
+        expr: >
+          histogram_quantile(
+            0.95,
+            sum(rate(forecast_duration_seconds_bucket[5m])) by (le)
+          ) > 5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "p95 Latency of forecast is greater than KPI"
+          description: >
+            The 95th percentile forecast latency is exceeding the 5-second KPI.
+
+      - alert: High Wells Latency
+        expr: >
+          histogram_quantile(
+            0.95,
+            sum(rate(wells_duration_seconds_bucket[5m])) by (le)
+          ) > 5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "p95 Latency of wells is greater than KPI"
+          description: >
+            The 95th percentile wells latency is exceeding the 5-second KPI.
+
+  - name: system-resources
+    interval: 60s
+    rules:
+
+      - alert: Sustained High CPU
+        expr: >
+          100 - (
+            avg by(instance) (
+              rate(node_cpu_seconds_total{mode="idle",job="node-exporter"}[5m])
+            ) * 100
+          ) > 80
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: "Host CPU usage exceeds 80%"
+          description: >
+            The host's CPU usage has been too high for the last 5 minutes.
+
+      - alert: Sustained High Memory
+        expr: >
+          (
+            1 - (node_memory_MemAvailable_bytes{job="node-exporter"} / node_memory_MemTotal_bytes{job="node-exporter"})
+          ) * 100 > 85
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: "Host Memory usage exceeds 85%"
+          description: >
+            Host memory usage consistently exceeds 85%.
