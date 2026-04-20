@@ -29,9 +29,9 @@ def get_wells(date_query: date, api_key: str = Depends(get_api_key)):
     with wells_duration_seconds.time():
         try:
             id_wells = [
-                {"id_well": "POZO-001"},
-                {"id_well": "POZO-002"},
-                {"id_well": "POZO-003"},
+                {"id_well": "WELL-001"},
+                {"id_well": "WELL-002"},
+                {"id_well": "WELL-003"},
             ]
 
             wells_total.labels(status="success").inc()

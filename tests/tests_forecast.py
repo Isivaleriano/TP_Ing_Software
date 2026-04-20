@@ -33,7 +33,7 @@ class TestForecast(unittest.TestCase):
         response = self.client.get(
             route_forecast,
             params={
-                "id_well": "POZO-001",
+                "id_well": "WELL-001",
                 "date_start": "2026-05-23",
                 "date_end": "2026-05-25",
             },
@@ -45,12 +45,12 @@ class TestForecast(unittest.TestCase):
         response = self.client.get(
             route_forecast,
             params={
-                "id_well": "POZO-001",
+                "id_well": "WELL-001",
                 "date_start": "2026-05-23",
                 "date_end": "2026-05-25",
             },
         )
-        self.assertEqual(response.json()["id_well"], "POZO-001")
+        self.assertEqual(response.json()["id_well"], "WELL-001")
     
     def test_missing_id_well(self):
         """If id_well fails, it must return 422"""
@@ -68,7 +68,7 @@ class TestForecast(unittest.TestCase):
         response = self.client.get(
             route_forecast,
             params={
-                "id_well": "POZO-001",
+                "id_well": "WELL-001",
                 "date_end": "2026-05-25",
             },
         )
@@ -79,7 +79,7 @@ class TestForecast(unittest.TestCase):
         response = self.client.get(
             route_forecast,
             params={
-                "id_well": "POZO-001",
+                "id_well": "WELL-001",
                 "date_start": "2026-05-23",
             },
         )
@@ -90,7 +90,7 @@ class TestForecast(unittest.TestCase):
         response = self.client.get(
             route_forecast,
             params={
-                "id_well": "POZO-001",
+                "id_well": "WELL-001",
                 "date_start": "invalid-date",
                 "date_end": "2026-03-10",
             },
@@ -102,7 +102,7 @@ class TestForecast(unittest.TestCase):
         response = self.client.get(
             route_forecast,
             params={
-                "id_well": "POZO-001",
+                "id_well": "WELL-001",
                 "date_start": "2026-03-10",
                 "date_end": "invalid-date",
             },
@@ -114,7 +114,7 @@ class TestForecast(unittest.TestCase):
         response = self.client.post(
             route_forecast,
             params={
-                "id_well": "POZO-001",
+                "id_well": "WELL-001",
                 "date_start": "2026-05-23",
                 "date_end": "2026-05-25",
             },
@@ -126,14 +126,14 @@ class TestForecast(unittest.TestCase):
         response = self.client.get(
             route_forecast,
             params={
-                "id_well": "POZO-001",
+                "id_well": "WELL-001",
                 "date_start": "2026-05-23",
                 "date_end": "2026-05-25",
             },
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {
-                "id_well": "POZO-001",
+                "id_well": "WELL-001",
                 "data": [
                     {"date": "2026-05-23", "prod": 150.5},
                     {"date": "2026-05-25", "prod": 160.2},
