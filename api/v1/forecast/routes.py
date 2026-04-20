@@ -1,9 +1,10 @@
 """Routes related to operations of forecast."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query
 from datetime import date
 from api.v1.security import get_api_key
 from prometheus_client import Counter, Histogram
+from typing import Annotated
 
 router = APIRouter()
 
@@ -20,9 +21,21 @@ forecasts_total = Counter(
 )
 
 @router.get("/forecast")
-def get_forecast(id_well: str, date_start: date, date_end: date, api_key: str = Depends(get_api_key)):
+def get_forecast(id_well: Annotated[str, Query(regex=r"^POZO-\d{3}$")], 
+                 date_start: date, 
+                 date_end: date, 
+                 api_key: str = Depends(get_api_key)):
+    """Gets forecast for a time horizon and a level of disaggregation.
+
+    :param id_well: well identifier.
+    :param date_start: start date of the time period.
+    : param date_end: end date of the time period.
+    :return: forecast
+    """
     with forecast_duration_seconds.time():
         try:
+            if date_end < date_start:
+                raise HTTPException(status_code=400, detail="date_end must be greater than or equal to date_start")
             data = [
                 {"date": date_start, "prod": 150.5},
                 {"date": date_end, "prod": 160.2},
