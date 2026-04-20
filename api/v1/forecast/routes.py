@@ -1,6 +1,6 @@
 """Routes related to operations of forecast."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from datetime import date
 from api.v1.security import get_api_key
 from prometheus_client import Counter, Histogram
@@ -30,6 +30,8 @@ def get_forecast(id_well: str, date_start: date, date_end: date, api_key: str = 
     """
     with forecast_duration_seconds.time():
         try:
+            if date_end < date_start:
+                raise HTTPException(status_code=400, detail="date_end must be greater than or equal to date_start")
             data = [
                 {"date": date_start, "prod": 150.5},
                 {"date": date_end, "prod": 160.2},
