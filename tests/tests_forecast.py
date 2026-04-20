@@ -157,6 +157,18 @@ class TestForecast(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 400)
 
+    def test_equal_start_and_end_date(self):
+        """If date_start and date_end are equal, must return 200"""
+        response = self.client.get(
+            route_forecast,
+            params={
+                "id_well": "POZO-001",
+                "date_start": "2026-05-23",
+                "date_end": "2026-05-23",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+
     def test_verb_not_allowed(self):
         """POST /forecast is not allowed, must return 405"""
         response = self.client.post(
