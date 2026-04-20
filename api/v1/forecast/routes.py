@@ -1,9 +1,10 @@
 """Routes related to operations of forecast."""
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from datetime import date
 from api.v1.security import get_api_key
 from prometheus_client import Counter, Histogram
+from typing import Annotated
 
 router = APIRouter()
 
@@ -20,7 +21,10 @@ forecasts_total = Counter(
 )
 
 @router.get("/forecast")
-def get_forecast(id_well: str, date_start: date, date_end: date, api_key: str = Depends(get_api_key)):
+def get_forecast(id_well: Annotated[str, Query(pattern=r"^WELL-\d{3}$")], 
+                 date_start: date, 
+                 date_end: date, 
+                 api_key: str = Depends(get_api_key)):
     """Gets forecast for a time horizon and a level of disaggregation.
 
     :param id_well: well identifier.

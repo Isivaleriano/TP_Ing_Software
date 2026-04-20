@@ -109,6 +109,42 @@ class TestForecast(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 422)
     
+    def test_invalid_id_well_format(self):
+        """If id_well has invalid format, must return 422"""
+        response = self.client.get(
+            route_forecast,
+            params={
+                "id_well": "WEL-001", 
+                "date_start": "2026-05-23",
+                "date_end": "2026-05-25",
+            },
+        )
+        self.assertEqual(response.status_code, 422)
+    
+    def test_invalid_id_well_format1(self):
+        """If id_well has invalid format, must return 422"""
+        response = self.client.get(
+            route_forecast,
+            params={
+                "id_well": "WELL-01", 
+                "date_start": "2026-05-23",
+                "date_end": "2026-05-25",
+            },
+        )
+        self.assertEqual(response.status_code, 422)
+    
+    def test_invalid_id_well_format2(self):
+        """If id_well has invalid format, must return 422"""
+        response = self.client.get(
+            route_forecast,
+            params={
+                "id_well": " ", 
+                "date_start": "2026-05-23",
+                "date_end": "2026-05-25",
+            },
+        )
+        self.assertEqual(response.status_code, 422)
+    
     def test_date_end_before_date_start(self):
         """If date_end is earlier than date_start, must return 400"""
         response = self.client.get(
