@@ -85,14 +85,26 @@ class TestForecast(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 422)
 
-    def test_invalid_date(self):
-        """If date has incorrect format, must return 422"""
+    def test_invalid_start_date(self):
+        """If start date has incorrect format, must return 422"""
         response = self.client.get(
             route_forecast,
             params={
                 "id_well": "POZO-001",
-                "date_start": "fecha-invalida",
+                "date_start": "invalid-date",
                 "date_end": "2026-03-10",
+            },
+        )
+        self.assertEqual(response.status_code, 422)
+    
+    def test_invalid_end_date(self):
+        """If end date has incorrect format, must return 422"""
+        response = self.client.get(
+            route_forecast,
+            params={
+                "id_well": "POZO-001",
+                "date_start": "2026-03-10",
+                "date_end": "invalid-date",
             },
         )
         self.assertEqual(response.status_code, 422)
