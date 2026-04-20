@@ -21,7 +21,7 @@ forecasts_total = Counter(
 )
 
 @router.get("/forecast")
-def get_forecast(id_well: Annotated[str, Query(pattern=r"^WELL-\d{3}$")], 
+def get_forecast(id_well: Annotated[str, Query(pattern=r"^POZO-\d{3}$")], 
                  date_start: date, 
                  date_end: date, 
                  api_key: str = Depends(get_api_key)):
