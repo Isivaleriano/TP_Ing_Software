@@ -21,6 +21,13 @@ forecasts_total = Counter(
 
 @router.get("/forecast")
 def get_forecast(id_well: str, date_start: date, date_end: date, api_key: str = Depends(get_api_key)):
+    """Gets forecast for a time horizon and a level of disaggregation.
+
+    :param id_well: well identifier.
+    :param date_start: start date of the time period.
+    : param date_end: end date of the time period.
+    :return: forecast
+    """
     with forecast_duration_seconds.time():
         try:
             data = [
