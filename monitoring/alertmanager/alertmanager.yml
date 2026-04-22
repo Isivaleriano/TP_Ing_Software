@@ -1,0 +1,18 @@
+global:
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'tpsoftware03@gmail.com'
+  smtp_auth_username: 'tpsoftware03@gmail.com'
+  smtp_auth_password: 'incorrect'
+  smtp_require_tls: true
+
+route:
+  receiver: 'email-alerts'
+  group_by: ['alertname']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 1h
+
+receivers:
+  - name: 'email-alerts'
+    email_configs:
+      - to: 'tpsoftware03@gmail.com'

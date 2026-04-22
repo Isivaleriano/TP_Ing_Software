@@ -1,12 +1,12 @@
 apiVersion: 1
 
 contactPoints:
-  - orgId: 1
-    name: webhook-clase
-    receivers:
-      - uid: webhook-clase-receiver
-        type: webhook
-        disableResolveMessage: false
-        settings:
-          url: http://webhook-receiver:8080/grafana-alerts
-          httpMethod: POST
+    - orgId: 1
+      name: email-alerts
+      receivers:
+        - uid: email-receiver
+          type: email
+          disableResolveMessage: false
+          settings:
+            addresses: "tpsoftware03@gmail.com"
+            singleEmail: false
