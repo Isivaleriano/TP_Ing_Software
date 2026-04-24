@@ -1,0 +1,32 @@
+ADR -Automated CD to EC2 with Github Actions
+
+Context:
+    With the CI pipeline working and the Docker image being published to
+    ghcr.io, the process of updating the service on EC2 was manual: connect
+    via SSH, pull the image, and restart the container. This created friction
+    and potential for human error on every deploy.
+
+Decision:
+    Add a deploy job to the docker_publish.yml workflow using appleboy/ssh-action
+    to connect to EC2 via SSH and automatically execute container update commands.
+    The job only runs if the docker job (build and push) completed successfully,
+    ensuring a broken image is never deployed.
+
+    Access credentials (IP, user, and SSH key) are stored as GitHub Actions
+    secrets: EC2_HOST, EC2_USER, EC2_SSH_KEY.
+
+    The deploy sequence executed on the EC2 instance is:
+        docker pull <image>:<version>
+        docker stop forecast-api
+        docker rm forecast-api
+        docker run -d --name forecast-api -p 8000:8000 <image>:<version>
+
+Alternative considered:
+    Manual deploy via SSH: No additional pipeline complexity but prone to
+    human error. Not aligned with the CD practice required by the project.
+
+Consequences:
+    + Every merge to main automatically updates the production service
+    + Deploy only occurs if tests and build pass successfully
+    + Full traceability of the process in GitHub Actions logs
+    + Eliminates manual error-prone steps

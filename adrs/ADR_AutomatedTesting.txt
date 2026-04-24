@@ -1,0 +1,29 @@
+ADR - Automated Testing with github Actions
+
+Context:
+    The project had a functional API and tests implemented using unittest,
+    executed manually in the local environment. There was no automatic 
+    mechanism to validate the correct functioning of the code upon changes,
+    which implied the risk of introducing errors without early detection.
+    A solution was needed to run tests automatically on each repository
+    modification, aligned with modern continuous integration (CI) practices.
+
+Decision:
+    Implement a CI pipeline using GitHub Actions, configured to run on every
+    push and pull request. The workflow installs dependencies via
+    requirements.txt and executes the test suite using:
+
+        python -m unittest discover -s tests
+
+    The workflow is defined in .github/workflows/tests.yml.
+
+Alternatives considered:
+    - Poetry for dependency management: Better version control but added
+    complexity. Discarded because the project already used 
+
+Consequences:
+    + Automatic code validation on every change
+    + Early error detection
+    + Improved code quality and reliability
+    + Foundation for more advanced practices (coverage, linting)
+    + Alignment with professional development standards

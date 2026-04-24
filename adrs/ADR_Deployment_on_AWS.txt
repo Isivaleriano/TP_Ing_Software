@@ -1,0 +1,17 @@
+ADR - Deployment on AWS EC2
+
+Context:
+    Once the API was containerized with Docker, a publicly accessible hosting environment was needed for the teaching team to evaluate the service during the correction period. A simple, cost-effective solution compatible with
+    Docker was required.
+
+Decision:
+    Deploy the API on an AWS EC2 instance (t2.micro, Ubuntu 24.04 LTS) within the free tier. The Docker image is pulled from GitHub Container Registry (ghcr.io) and run exposing port 8000. Ports 22 (SSH) and 8000 (API) were enabled in the Security Group.
+
+Alternatives considered:
+    AWS ECS: Designed specifically for running containers but with greater configuration complexity for Phase 1 scope. Discarded in favor of EC2 for simplicity, with possibility of migrating in later phases.
+
+Consequences:
+    + Cost-effective solution within the free tier
+    + Full control over infrastructure
+    + Compatible with Docker without additional configuration
+    + Foundation to scale in later phases
