@@ -34,14 +34,13 @@ services:
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_FEATURE_TOGGLES_ENABLE: alertingSimplifiedRouting
       GF_SMTP_ENABLED: "true"
-      GF_SMTP_HOST: "smtp.gmail.com:587"
-      GF_SMTP_USER: ${SMTP_USER}
-      GF_SMTP_PASSWORD: ${PSWD_GMAIL}
-      GF_SMTP_FROM_ADDRESS: ${SMTP_USER}
-      GF_SMTP_FROM_NAME: Grafana
+      GF_SMTP_HOST: smtp.gmail.com:587
+      GF_SMTP_USER: tpsoftware03@gmail.com
+      GF_SMTP_PASSWORD: "incorrect"
+      GF_SMTP_FROM_ADDRESS: tpsoftware03@gmail.com
+      GF_SMTP_FROM_NAME: "TP Monitoring"
       GF_SMTP_STARTTLS_POLICY: MandatoryStartTLS
       GF_SMTP_SKIP_VERIFY: "false"
-      
     volumes:
       - grafana-data:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
