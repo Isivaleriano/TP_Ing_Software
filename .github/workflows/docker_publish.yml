@@ -81,13 +81,17 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: IMAGE,VERSION
+          envs: IMAGE,VERSION,SMTP_PASSWORD
           script: |
+            echo "SMTP_PASSWORD=$SMTP_PASSWORD" > /home/ubuntu/.env
             docker login ghcr.io -u ${{ github.actor }} --password ${{ secrets.GITHUB_TOKEN }}
             docker pull $IMAGE:$VERSION
             docker stop forecast-api || true
             docker rm forecast-api || true
-            docker run -d --name forecast-api -p 8000:8000 $IMAGE:$VERSION
+            cd /home/ubuntu/TP_Ing_Software
+            git pull
+            docker-compose --env-file /home/ubuntu/.env up -d
         env:
           IMAGE: ${{ needs.docker.outputs.image }}
           VERSION: ${{ needs.docker.outputs.version }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
