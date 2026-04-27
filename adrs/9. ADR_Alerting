@@ -1,0 +1,30 @@
+ADR - Email Alerting Implementation
+
+Context: Following the monitoring system implemented with Prometheus and Grafana, we needed a way to 
+actively notify the team when relevant problems occurred in the API. While dashboards provide 
+visibility, they require manual inspection, which is not sufficient for timely detection of critical 
+issues. Initially, we configured email alerts using Alertmanager, defining SMTP settings directly in 
+an alertmanager.yml file. However, this approach required including the Gmail SMTP password in the 
+configuration, which would expose sensitive credentials in the repository and posed a security risk.
+
+Decision: we decided to remove the Alertmanager email configuration and implement email alerting 
+directly through Grafana provisioning.
+
+The implementation consisted on:
+1) SMTP configuration
+We configured Grafana SMTP settings in docker-compose.yml using environment variables for the email 
+password. This allowed us to send emails without hardcoding sensitive credentials in the repository.
+
+2) Contact point and notification policies
+We defined contact points and notification policies using Grafana provisioning files. This ensured 
+that alert routing to email recipients is reproducible and automatically configured when the system starts.
+
+3) Grafana alert rules
+We implemented alert rules in Grafana based on Prometheus metrics:
+- API DOWN GRAFANA: triggered when the API is detected as unavailable.
+- HIGH ERROR RATE: triggered when the 5xx error rate exceeds 1%.
+- HIGH FORECAST LATENCY: triggered when the p95 latency of forecast requests exceeds the defined threshold.
+
+Consequences: This decision allowed us to send automated email notifications while avoiding exposure 
+of sensitive credentials. It also simplified the alerting architecture by centralizing both 
+visualization and notification logic within Grafana. 

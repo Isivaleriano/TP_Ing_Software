@@ -7,7 +7,7 @@ groups:
     interval: 30s
     rules:
 
-            # 🔴 API DOWN
+            # API DOWN
       - uid: api-down-grafana
         title: API DOWN GRAFANA
         condition: C
@@ -56,7 +56,7 @@ groups:
                     type: gt
                     params: [0]
 
-      # 🟡 HIGH ERROR RATE
+      # HIGH ERROR RATE
       - uid: high-error-rate-grafana
         title: HIGH ERROR RATE
         condition: C
@@ -106,7 +106,7 @@ groups:
                     type: gt
                     params: [0.01]
 
-      # 🔵 HIGH FORECAST LATENCY
+      # HIGH FORECAST LATENCY
       - uid: high-forecast-latency-grafana
         title: HIGH FORECAST LATENCY
         condition: C

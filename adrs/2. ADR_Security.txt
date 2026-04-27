@@ -1,0 +1,28 @@
+ADR - API Key Security Implementation
+
+Context: The API needed a basic security mechanism to prevent unrestricted access to the endpoints. 
+Since the project exposes forecast and wells information, requests should only be accepted when the 
+client provides a valid API key. Therefore, we needed a simple way to validate access before executing 
+the endpoint logic.
+
+Decision: we implemented API key security using a custom header called X-API-Key. We created a 
+security.py file inside app/v1, where we defined the expected API key and the get_api_key function. 
+This function reads the value sent in the X-API-Key header and compares it with the valid key. If the 
+key is correct, the request is allowed to continue. If the key is missing or invalid, the API raises 
+an HTTPException with status code 403 and returns a custom error message.
+
+The security dependency was then added to both main endpoints:
+1) Forecast endpoint
+The /api/v1/forecast endpoint now depends on get_api_key. This means that forecast requests are only 
+processed when the client sends a valid API key in the request header.
+
+2) Wells endpoint
+The /api/v1/wells endpoint was also protected with the same dependency, so users cannot access the 
+list of wells without authorization.
+
+Consequences: This decision added a first layer of access control to the API while keeping the 
+implementation simple and easy to test. It also centralized the validation logic in one file, making it 
+reusable across endpoints. From this point on, endpoints could no longer be accessed directly from a 
+browser for testing purposes, since requests now require an X-API-Key header. As a result, we adopted a 
+dedicated API client (Insomnia) to test and validate the endpoints, allowing us to include the required 
+headers and parameters in a structured way. 

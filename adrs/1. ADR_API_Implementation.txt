@@ -1,0 +1,28 @@
+ADR - API Implementation
+
+Context: We started from the base FastAPI project provided in class, which included example routes 
+such as /hello, /sum and /user. However, our project needed to follow the technical addendum for 
+the Oil & Gas Forecast API. Therefore, the initial example endpoints were not enough, and we needed to 
+adapt the project structure and API behavior to match the required domain.
+
+Decision: we implemented the first version of our API using FastAPI, replacing the example functionality
+with domain-specific endpoints for wells and forecasts. 
+
+The implementation consisted on:
+1) Project structure
+We reorganized the API inside the app/v1 folder in order to separate the new versioned API from the 
+original class example. This allowed us to create a clearer structure for the project.
+
+2) Forecast endpoint
+We created the /api/v1/forecast endpoint. This endpoint receives an id_well, a date_start and a date_end, 
+and returns a basic forecast response containing the well identifier and production values for the 
+selected dates. At this first stage, the response was mocked with fixed production values. This allowed us to validate 
+the expected response structure even without having real data yet.
+
+3) Wells endpoint
+We created the /api/v1/wells endpoint. This endpoint receives a date_query parameter and returns a list
+of available wells. As with the forecast endpoint, the first implementation used mock data.
+
+Consequences: This decision allowed us to move from a generic class example to a domain-specific API 
+aligned with the Oil & Gas Forecast project, providing a clean foundation for further development. 
+However, this first version still relies on hardcoded data.

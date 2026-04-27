@@ -1,0 +1,27 @@
+ADR - Docker Implementation
+
+Context: We started from a Docker example provided in class, which contained a simple FastAPI 
+application inside a py-app folder. That example exposed a basic /health endpoint and was useful to 
+understand how to build and run a Python API inside a container. However, our project had already 
+evolved into a versioned Oil & Gas Forecast API, with its code organized under api/v1. Therefore, 
+the original Docker setup had to be adapted to package and run our actual application.
+
+Decision: we implemented Docker support for our FastAPI API by adapting the class Dockerfile to our 
+project structure.
+
+The implementation consisted on:
+1) Base image and dependencies
+We used python:3.13-slim as the base image to keep the container lightweight. The Dockerfile copies the
+requirements.txt file from api/v1 and installs the required dependencies, including FastAPI and Uvicorn.
+
+2) Project structure
+Instead of copying the original py-app folder, we copied the api folder into /app/api inside the 
+container. This allowed the container to run the same application structure used in the project.
+
+3) Application startup
+We configured the container to expose port 8000 and start the API using Uvicorn with the app 
+path api.v1.main:app. This made the container run the Oil & Gas Forecast API directly.
+
+Consequences: This decision allowed us to run the API in an isolated and reproducible environment, 
+independent from the local machine configuration. It also made the project easier to execute using 
+Docker commands and prepared the API for future integration with other services.
