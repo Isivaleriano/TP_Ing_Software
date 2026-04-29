@@ -90,6 +90,8 @@ jobs:
             docker rm forecast-api || true
             cd /home/ubuntu/TP_Ing_Software
             git pull
+            docker-compose --env-file /home/ubuntu/.env down || true
+            docker volume rm tp_ing_software_grafana-data || true
             docker-compose --env-file /home/ubuntu/.env up -d
         env:
           IMAGE: ${{ needs.docker.outputs.image }}
