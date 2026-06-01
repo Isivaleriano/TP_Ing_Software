@@ -46,7 +46,18 @@ docker run -d --name forecast-api -p 8000:8000 ghcr.io/isivaleriano/tp_ing_softw
 
 ## API Documentation
 
-Once the server is running, the interactive documentation is available at:
+### Production Environment (AWS EC2)
+
+Interactive Swagger documentation:
+
+http://52.87.250.147:8000/docs
+
+OpenAPI specification:
+
+http://52.87.250.147:8000/openapi.json
+
+### Local Environment
+
 http://localhost:8000/docs
 
 ## Endpoints
@@ -119,8 +130,19 @@ The API is deployed on AWS EC2 using Docker. The deployment is automated
 via GitHub Actions — every push to `main` that passes tests automatically 
 builds, publishes and deploys the new image to the EC2 instance.
 
-> **Note:** The EC2 instance has a dynamic public IP that changes on restart.
-> Contact the team for the current URL during the correction period.
+### Production URLs
+
+- API Documentation: http://52.87.250.147:8000/docs
+- OpenAPI Specification: http://52.87.250.147:8000/openapi.json
+- Prometheus: http://52.87.250.147:9090
+- Grafana: http://52.87.250.147:3001
+
+Grafana credentials:
+
+- User: admin
+- Password: Software_tp
+
+> Note: The application is deployed on an AWS EC2 instance through an automated CI/CD pipeline using GitHub Actions.
 
 ## CI/CD
 
@@ -159,9 +181,12 @@ The system is orchestrated using Docker.
 ## System Performance Metrics
 
 The API exposes metrics at:
-```bash
+
+Production:
+http://52.87.250.147:8000/metrics
+
+Local:
 http://localhost:8000/metrics
-```
 
 To verify that Prometheus is correctly scraping the API, access:
 ```bash
@@ -175,10 +200,13 @@ http://localhost:9090/targets
 docker compose up --build
 ```
 
-2. Open Grafana in browser:
-```bash
+2. Open Grafana in browser
+
+Production:
+http://52.87.250.147:3001
+
+Local:
 http://localhost:3001
-```
 
 3. Login:
 - User: admin
@@ -192,6 +220,24 @@ Note: Email notifications are not fully configured due to AWS cost constraints. 
 - Metrics are updated in near real-time
 - Some panels require continuous traffic to display values
 - To test alerting behavior, manual requests or simulated failures can be performed
+
+## Live Demo
+
+The application is publicly available for evaluation:
+
+| Service | URL |
+|----------|----------|
+| Swagger UI | http://52.87.250.147:8000/docs |
+| OpenAPI JSON | http://52.87.250.147:8000/openapi.json |
+| Forecast API | http://52.87.250.147:8000/api/v1 |
+| Metrics | http://52.87.250.147:8000/metrics |
+| Prometheus | http://52.87.250.147:9090 |
+| Grafana | http://52.87.250.147:3001 |
+
+Grafana credentials:
+
+- User: admin
+- Password: Software_tp
 
 ## Project structure
 
