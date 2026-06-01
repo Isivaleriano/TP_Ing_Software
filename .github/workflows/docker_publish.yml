@@ -83,16 +83,22 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           envs: IMAGE,VERSION,SMTP_PASSWORD
           script: |
-            echo "SMTP_PASSWORD=$SMTP_PASSWORD" > /home/ubuntu/.env
-            docker login ghcr.io -u ${{ github.actor }} --password ${{ secrets.GITHUB_TOKEN }}
-            docker pull $IMAGE:$VERSION
-            docker stop forecast-api || true
-            docker rm forecast-api || true
+            set -e
+
             cd /home/ubuntu/TP_Ing_Software
+
+            echo "SMTP_PASSWORD=$SMTP_PASSWORD" > /home/ubuntu/.env
+            echo "API_IMAGE=$IMAGE:$VERSION" >> /home/ubuntu/.env
+
+            docker login ghcr.io -u ${{ github.actor }} --password ${{ secrets.GITHUB_TOKEN }}
+
             git pull
-            docker-compose --env-file /home/ubuntu/.env down || true
-            docker volume rm tp_ing_software_grafana-data || true
-            docker-compose --env-file /home/ubuntu/.env up -d
+
+            docker compose --env-file /home/ubuntu/.env pull api
+            docker compose --env-file /home/ubuntu/.env up -d --no-deps api
+            docker compose --env-file /home/ubuntu/.env up -d prometheus grafana webhook-receiver node-exporter
+
+            docker image prune -f
         env:
           IMAGE: ${{ needs.docker.outputs.image }}
           VERSION: ${{ needs.docker.outputs.version }}

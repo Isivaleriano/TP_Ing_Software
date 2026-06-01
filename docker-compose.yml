@@ -1,12 +1,13 @@
-
 services:
   api:
+    image: ${API_IMAGE:-ghcr.io/isivaleriano/tp_ing_software:latest}
     build:
       context: .
       dockerfile: ./api/v1/Dockerfile
     container_name: fastapi_api
     ports:
       - "8000:8000"
+    restart: unless-stopped
 
   prometheus:
     image: prom/prometheus:v2.51.0
@@ -31,7 +32,7 @@ services:
       - "3001:3000"
     environment:
       GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: Software_tp
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-Software_tp}
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_FEATURE_TOGGLES_ENABLE: alertingSimplifiedRouting
       GF_SMTP_ENABLED: "true"
