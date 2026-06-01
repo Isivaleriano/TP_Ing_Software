@@ -94,9 +94,9 @@ jobs:
 
             git pull
 
-            docker-compose pull api
-            docker-compose up -d --no-deps api
-            docker-compose up -d prometheus grafana webhook-receiver node-exporter
+            docker compose pull api
+            docker compose up -d --no-deps api
+            docker compose up -d prometheus grafana webhook-receiver node-exporter
 
             docker image prune -f
         env:
