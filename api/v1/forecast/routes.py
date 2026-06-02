@@ -20,8 +20,10 @@ forecasts_total = Counter(
     ["status"]
 )
 
+VALID_WELLS = ["WELL-001", "WELL-002", "WELL-003"]
+
 @router.get("/forecast")
-def get_forecast(id_well: Annotated[str, Query(regex=r"^POZO-\d{3}$")], 
+def get_forecast(id_well: Annotated[str, Query(regex=r"^WELL-\d{3}$")], 
                  date_start: date, 
                  date_end: date, 
                  api_key: str = Depends(get_api_key)):
@@ -35,7 +37,9 @@ def get_forecast(id_well: Annotated[str, Query(regex=r"^POZO-\d{3}$")],
     with forecast_duration_seconds.time():
         try:
             if date_end < date_start:
-                raise HTTPException(status_code=400, detail="date_end must be greater than or equal to date_start")
+                raise HTTPException( status_code=400, detail="date_end must be greater than or equal to date_start")
+            if id_well not in VALID_WELLS:
+                raise HTTPException( status_code=404, detail=f"Well {id_well} not found" )
             data = [
                 {"date": date_start, "prod": 150.5},
                 {"date": date_end, "prod": 160.2},
