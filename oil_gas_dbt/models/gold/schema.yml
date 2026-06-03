@@ -1,0 +1,35 @@
+version: 2
+
+models:
+  - name: dim_well
+    columns:
+      - name: well_key
+        tests: [not_null, unique]
+      - name: idpozo
+        description: "Business key del pozo. Puede ser null únicamente para la fila UNKNOWN usada para preservar registros de producción sin match en la dimensión."
+
+  - name: dim_company
+    columns:
+      - name: company_key
+        tests: [not_null, unique]
+      - name: idempresa
+        tests: [not_null]
+
+  - name: dim_location
+    columns:
+      - name: location_key
+        tests: [not_null, unique]
+
+  - name: dim_date
+    columns:
+      - name: date_key
+        tests: [not_null, unique]
+
+  - name: fact_production
+    columns:
+      - name: production_key
+        tests: [not_null, unique]
+      - name: well_key
+        tests: [not_null]
+      - name: date_key
+        tests: [not_null]
