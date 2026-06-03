@@ -3,3 +3,5 @@ uvicorn==0.34.0
 httpx
 ruff
 prometheus-fastapi-instrumentator
+pandas
+matplotlib
