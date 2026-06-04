@@ -45,7 +45,7 @@ class TestSecurity(unittest.TestCase):
         response = self.client.get(
             route_forecast,
             params={
-                "id_well": "POZO-001",
+                "id_well": "WELL-001",
                 "date_start": "2026-05-23",
                 "date_end": "2026-05-25",
             },
@@ -60,7 +60,7 @@ class TestSecurity(unittest.TestCase):
         response = self.client.get(
             route_forecast,
             params={
-                "id_well": "POZO-001",
+                "id_well": "WELL-001",
                 "date_start": "2026-05-23",
                 "date_end": "2026-05-25",
             },
@@ -72,7 +72,7 @@ class TestSecurity(unittest.TestCase):
         response = self.client.get(
             route_forecast,
             params={
-                "id_well": "POZO-001",
+                "id_well": "WELL-001",
                 "date_start": "2026-05-23",
                 "date_end": "2026-05-25",
             },
@@ -87,7 +87,7 @@ class TestSecurity(unittest.TestCase):
         response = self.client.get(
             route_forecast,
             params={
-                "id_well": "POZO-001",
+                "id_well": "WELL-001",
                 "date_start": "2026-05-23",
                 "date_end": "2026-05-25",
             },
