@@ -1,24 +1,21 @@
 {{ config(materialized='table', schema='gold') }}
 
-select
-    row_number() over (
-        order by
-            idprovincia,
-            idcuenca,
-            idareapermisoconcesion,
-            idareayacimiento
-    ) as location_key,
+WITH locations AS (
+    SELECT DISTINCT
+        provincia,
+        cuenca,
+        areayacimiento
+    FROM {{ ref('silver_wells_production') }}
+    WHERE provincia IS NOT NULL
+       OR cuenca IS NOT NULL
+       OR areayacimiento IS NOT NULL
+)
 
-    idprovincia,
-    idcuenca,
-    idareapermisoconcesion,
-    idareayacimiento
-
-from (
-    select distinct
-        idprovincia,
-        idcuenca,
-        idareapermisoconcesion,
-        idareayacimiento
-    from {{ ref('silver_listed_wells') }}
-) locations
+SELECT
+    ROW_NUMBER() OVER (
+        ORDER BY provincia, cuenca, areayacimiento
+    ) AS location_sk,
+    provincia,
+    cuenca,
+    areayacimiento
+FROM locations

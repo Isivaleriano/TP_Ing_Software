@@ -1,15 +1,17 @@
 {{ config(materialized='table', schema='gold') }}
 
-with production as (
-    select
+WITH production AS (
+    SELECT
         p.idpozo,
         p.idempresa,
-        (p.anio * 100 + p.mes) as date_key,
+        p.empresa,
+        p.anio,
+        p.mes,
+        p.production_date,
 
-        w.idprovincia,
-        w.idcuenca,
-        w.idareapermisoconcesion,
-        w.idareayacimiento,
+        p.provincia,
+        p.cuenca,
+        p.areayacimiento,
 
         p.prod_pet,
         p.prod_gas,
@@ -18,27 +20,29 @@ with production as (
         p.iny_gas,
         p.iny_co2,
         p.iny_otro,
-        p.tef,
-        p.vida_util
-    from {{ ref('silver_wells_production') }} p
-    left join {{ ref('silver_listed_wells') }} w
-        on p.idpozo = w.idpozo
-    where p.idpozo is not null
-      and p.anio is not null
-      and p.mes is not null
+        p.tef
+    FROM {{ ref('silver_wells_production') }} p
+    WHERE p.idpozo IS NOT NULL
+      AND p.anio IS NOT NULL
+      AND p.mes IS NOT NULL
 )
 
-select
-    row_number() over (
-        order by
+SELECT
+    ROW_NUMBER() OVER (
+        ORDER BY
             production.idpozo,
-            production.date_key
-    ) as production_key,
+            production.anio,
+            production.mes
+    ) AS production_sk,
 
-    coalesce(dw.well_key, 0) as well_key,
+    COALESCE(dw.well_sk, 0) AS well_sk,
     dc.company_key,
-    dl.location_key,
-    dd.date_key,
+    dl.location_sk,
+    dd.date_sk,
+
+    production.idpozo,
+    production.anio,
+    production.mes,
 
     production.prod_pet,
     production.prod_gas,
@@ -47,22 +51,21 @@ select
     production.iny_gas,
     production.iny_co2,
     production.iny_otro,
-    production.tef,
-    production.vida_util
+    production.tef
 
-from production
+FROM production
 
-left join {{ ref('dim_well') }} dw
-    on production.idpozo = dw.idpozo
+LEFT JOIN {{ ref('dim_well') }} dw
+    ON production.idpozo = dw.idpozo
 
-left join {{ ref('dim_company') }} dc
-    on production.idempresa = dc.idempresa
+LEFT JOIN {{ ref('dim_company') }} dc
+    ON production.idempresa = dc.idempresa
 
-left join {{ ref('dim_location') }} dl
-    on production.idprovincia = dl.idprovincia
-   and production.idcuenca = dl.idcuenca
-   and production.idareapermisoconcesion = dl.idareapermisoconcesion
-   and production.idareayacimiento = dl.idareayacimiento
+LEFT JOIN {{ ref('dim_location') }} dl
+    ON production.provincia = dl.provincia
+   AND production.cuenca = dl.cuenca
+   AND production.areayacimiento = dl.areayacimiento
 
-left join {{ ref('dim_date') }} dd
-    on production.date_key = dd.date_key
+LEFT JOIN {{ ref('dim_date') }} dd
+    ON production.anio = dd.anio
+   AND production.mes = dd.mes

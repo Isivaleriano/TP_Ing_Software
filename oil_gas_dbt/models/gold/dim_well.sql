@@ -1,38 +1,44 @@
 {{ config(materialized='table', schema='gold') }}
 
-select
-    0 as well_key,
-    null::bigint as idpozo,
-    'UNKNOWN' as sigla,
-    null::text as formprod,
-    null::text as codigopropio,
-    null::text as nombrepropio,
-    null::double precision as coordenadax,
-    null::double precision as coordenaday,
-    null::double precision as cota
+SELECT
+    0 AS well_sk,
+    NULL::text AS idpozo,
+    'UNKNOWN'::text AS sigla,
+    NULL::text AS formprod,
+    NULL::double precision AS profundidad,
+    NULL::double precision AS coordenadax,
+    NULL::double precision AS coordenaday,
+    NULL::text AS clasificacion,
+    NULL::text AS subclasificacion,
+    NULL::text AS tipo_reservorio,
+    NULL::text AS subtipo_reservorio
 
-union all
+UNION ALL
 
-select
-    row_number() over (order by idpozo) as well_key,
+SELECT
+    ROW_NUMBER() OVER (ORDER BY idpozo) AS well_sk,
     idpozo,
     sigla,
     formprod,
-    codigopropio,
-    nombrepropio,
+    profundidad,
     coordenadax,
     coordenaday,
-    cota
-from (
-    select distinct
+    clasificacion,
+    subclasificacion,
+    tipo_reservorio,
+    subtipo_reservorio
+FROM (
+    SELECT DISTINCT
         idpozo,
         sigla,
         formprod,
-        codigopropio,
-        nombrepropio,
+        profundidad,
         coordenadax,
         coordenaday,
-        cota
-    from {{ ref('silver_listed_wells') }}
-    where idpozo is not null
+        clasificacion,
+        subclasificacion,
+        tipo_reservorio,
+        subtipo_reservorio
+    FROM {{ ref('silver_listed_wells') }}
+    WHERE idpozo IS NOT NULL
 ) wells
