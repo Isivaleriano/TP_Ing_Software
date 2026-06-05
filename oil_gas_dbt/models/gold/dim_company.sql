@@ -1,7 +1,7 @@
 {{ config(materialized='table', schema='gold') }}
 
 select
-    row_number() over (order by idempresa) as company_key,
+    row_number() over (order by idempresa) as company_sk,
     idempresa
 from (
     select distinct

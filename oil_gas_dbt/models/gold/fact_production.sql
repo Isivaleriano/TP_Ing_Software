@@ -36,7 +36,7 @@ SELECT
     ) AS production_sk,
 
     COALESCE(dw.well_sk, 0) AS well_sk,
-    dc.company_key,
+    dc.company_sk,
     dl.location_sk,
     dd.date_sk,
 

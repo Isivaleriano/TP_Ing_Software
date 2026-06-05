@@ -1,7 +1,7 @@
 {{ config(materialized='table', schema='gold') }}
 
 select distinct
-    (anio * 100 + mes) as date_key,
+    (anio * 100 + mes) as date_sk,
     anio,
     mes,
 
