@@ -68,7 +68,11 @@ models:
     columns:
       - name: idpozo
         description: "Well ID associated with the production log."
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              to: ref('silver_listed_wells')
+              field: idpozo
 
       - name: anio
         description: "Year of production record."
