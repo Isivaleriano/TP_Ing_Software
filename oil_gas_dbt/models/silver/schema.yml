@@ -1,0 +1,94 @@
+version: 2
+
+models:
+  - name: silver_listed_wells
+    description: "Wells listed from bronze, cleaned and deduplicated by idpozo."
+    meta:
+      owner: "team-data"
+      team: "analytics"
+    columns:
+      - name: idpozo
+        description: "Unique well ID."
+        tests: [unique, not_null]
+
+      - name: idempresa
+        description: "ID of the company operating the well."
+        tests: [not_null]
+
+      - name: cuenca
+        description: "Hydrocarbon basin (cuenca) associated with the well."
+        tests: [not_null]
+
+      - name: provincia
+        description: "Province where the well is located."
+        tests: [not_null]
+        meta:
+          pii: false
+          sensitivity: "low"
+
+      - name: areapermisoconcesion
+        description: "Area, permit or concession associated with the well."
+        tests: [not_null]
+
+      - name: areayacimiento
+        description: "Area or deposit associated with the well."
+        tests: [not_null]
+      
+      - name: profundidad
+        description: "Well depth. It should not be negative."
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+
+      - name: coordenadax
+        description: "Geographic length of the well. It must be between -180 and 180."
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "between -180 and 180"
+
+      - name: coordenaday
+        description: "Geographic latitude of the well. It must be between -90 and 90."
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "between -90 and 90"
+
+  - name: silver_wells_production
+    description: "Monthly well production from bronze, with clean records and valid data."
+    meta:
+      owner: "team-data"
+      team: "analytics"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - idpozo
+            - anio
+            - mes
+    columns:
+      - name: idpozo
+        description: "Well ID associated with the production log."
+        tests: [not_null]
+
+      - name: anio
+        description: "Year of production record."
+        tests: [not_null]
+
+      - name: mes
+        description: "Month of production record. Must be between 1 and 12."
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+
+      - name: prod_pet
+        description: "Monthly oil production. Should not contain zero values."
+        tests: [not_null]
+
+      - name: prod_gas
+        description: "Monthly gas production. Should not contain zero values."
+        tests: [not_null]
+
+      - name: prod_agua
+        description: "Monthly water production. Should not contain zero values."
+        tests: [not_null]
