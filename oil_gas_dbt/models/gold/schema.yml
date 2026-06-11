@@ -1,35 +1,159 @@
 version: 2
 
 models:
-  - name: dim_well
-    columns:
-      - name: well_key
-        tests: [not_null, unique]
-      - name: idpozo
-        description: "Business key del pozo. Puede ser null únicamente para la fila UNKNOWN usada para preservar registros de producción sin match en la dimensión."
-
   - name: dim_company
+    description: "Size of operating companies."
+    meta:
+      owner: "team-data"
+      team: "analytics"
     columns:
-      - name: company_key
-        tests: [not_null, unique]
-      - name: idempresa
-        tests: [not_null]
+      - name: company_sk
+        description: "Unique surrogate key of the company."
+        tests: [unique, not_null]
 
-  - name: dim_location
-    columns:
-      - name: location_key
-        tests: [not_null, unique]
+      - name: idempresa
+        description: "Company business ID."
+        tests: [unique, not_null]
 
   - name: dim_date
+    description: "Monthly date dimension."
+    meta:
+      owner: "team-data"
+      team: "analytics"
     columns:
-      - name: date_key
-        tests: [not_null, unique]
+      - name: date_sk
+        description: "Surrogate date key in YYYYMM format."
+        tests: [unique, not_null]
+
+      - name: anio
+        description: "Year of registration."
+        tests: [not_null]
+
+      - name: mes
+        description: "Registration month."
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+
+      - name: quarter
+        description: "Quarter of the year."
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4]
+
+  - name: dim_location
+    description: "Geographical dimension of the well."
+    meta:
+      owner: "team-data"
+      team: "analytics"
+    columns:
+      - name: location_sk
+        description: "Unique location surrogate key."
+        tests: [unique, not_null]
+
+      - name: provincia
+        description: "Province associated with the well."
+        tests: [not_null]
+
+      - name: cuenca
+        description: "Hydrocarbon basin (cuenca)."
+        tests: [not_null]
+
+      - name: areayacimiento
+        description: "Associated area or deposit."
+        tests: [not_null]
+
+  - name: dim_well
+    description: "Well dimensions."
+    meta:
+      owner: "team-data"
+      team: "analytics"
+    columns:
+      - name: well_sk
+        description: "Unique well surrogate key."
+        tests: [unique, not_null]
+
+      - name: idpozo
+        description: "Well business ID. Can be null only for the UNKNOWN record."
+        tests:
+          - unique
 
   - name: fact_production
+    description: "Table of facts with monthly well production."
+    meta:
+      owner: "team-data"
+      team: "analytics"
+    tests:
+    - dbt_utils.unique_combination_of_columns:
+        combination_of_columns:
+          - idpozo
+          - anio
+          - mes
+
     columns:
-      - name: production_key
-        tests: [not_null, unique]
-      - name: well_key
+      - name: production_sk
+        description: "Unique surrogate key of the production record."
+        tests: [unique, not_null]
+
+      - name: well_sk
+        description: "FK to dim_well."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_well')
+              field: well_sk
+
+      - name: company_sk
+        description: "FK to dim_company."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_company')
+              field: company_sk
+
+      - name: location_sk
+        description: "FK to dim_location."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_location')
+              field: location_sk
+
+      - name: date_sk
+        description: "FK to dim_date."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_date')
+              field: date_sk
+
+      - name: idpozo
+        description: "Well business ID."
         tests: [not_null]
-      - name: date_key
+
+      - name: anio
         tests: [not_null]
+
+      - name: prod_pet
+        description: "Monthly oil production."
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+
+      - name: prod_gas
+        description: "Monthly gas production."
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+
+      - name: prod_agua
+        description: "Monthly water production."
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      

@@ -9,7 +9,7 @@ WITH raw AS (
         profundidad::double precision        AS profundidad,
         TRIM(areapermisoconcesion)::varchar  AS areapermisoconcesion,
         TRIM(areayacimiento)::varchar        AS areayacimiento,
-        TRIM(cuenca)::varchar                AS cuenca,
+        COALESCE(NULLIF(TRIM(cuenca), ''), 'UNKNOWN')::varchar AS cuenca,
         TRIM(provincia)::varchar             AS provincia,
         coordenadax::double precision        AS coordenadax,
         coordenaday::double precision        AS coordenaday,

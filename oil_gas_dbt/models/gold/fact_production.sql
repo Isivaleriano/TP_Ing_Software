@@ -12,6 +12,7 @@ WITH production AS (
         p.provincia,
         p.cuenca,
         p.areayacimiento,
+        p.areapermisoconcesion,
 
         p.prod_pet,
         p.prod_gas,
@@ -36,8 +37,8 @@ SELECT
     ) AS production_sk,
 
     COALESCE(dw.well_sk, 0) AS well_sk,
-    dc.company_sk,
-    dl.location_sk,
+    COALESCE(dc.company_sk, 0) AS company_sk,
+    COALESCE(dl.location_sk, 0) AS location_sk,
     dd.date_sk,
 
     production.idpozo,
@@ -65,6 +66,7 @@ LEFT JOIN {{ ref('dim_location') }} dl
     ON production.provincia = dl.provincia
    AND production.cuenca = dl.cuenca
    AND production.areayacimiento = dl.areayacimiento
+   AND production.areapermisoconcesion = dl.areapermisoconcesion
 
 LEFT JOIN {{ ref('dim_date') }} dd
     ON production.anio = dd.anio
