@@ -4,7 +4,8 @@ WITH locations AS (
     SELECT DISTINCT
         provincia,
         cuenca,
-        areayacimiento
+        areayacimiento,
+        areapermisoconcesion
     FROM {{ ref('silver_wells_production') }}
     WHERE provincia IS NOT NULL
        OR cuenca IS NOT NULL
@@ -13,9 +14,10 @@ WITH locations AS (
 
 SELECT
     ROW_NUMBER() OVER (
-        ORDER BY provincia, cuenca, areayacimiento
+        ORDER BY provincia, cuenca, areayacimiento, areapermisoconcesion
     ) AS location_sk,
     provincia,
     cuenca,
-    areayacimiento
+    areayacimiento,
+    areapermisoconcesion
 FROM locations
