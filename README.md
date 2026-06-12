@@ -394,7 +394,7 @@ dbt docs generate
 Generate metadata and lineage:
 
 ```bash
-datahub/ingest.sh
+datahub ./ingest.sh
 ```
 
 Open DataHub:
