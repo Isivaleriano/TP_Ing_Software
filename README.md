@@ -239,6 +239,180 @@ Grafana credentials:
 - User: admin
 - Password: Software_tp
 
+
+
+
+# Data Integration
+## Data Engineering Architecture
+
+The project follows a Medallion Architecture composed of three layers.
+
+### Bronze Layer
+
+Stores raw data ingested from Argentina's public oil and gas datasets (`datos.gob.ar`). Data in this layer is preserved without modifications to ensure reproducibility and future reprocessing.
+
+### Silver Layer
+
+Contains cleaned and standardized data. Transformations include:
+
+- Type casting
+- Null handling
+- Deduplication
+- String trimming
+- Domain validation
+
+Silver models:
+
+- `silver_listed_wells`
+- `silver_wells_production`
+
+### Gold Layer
+
+Implements a dimensional model optimized for analytics using a star schema.
+
+Dimensions:
+
+- `dim_company`
+- `dim_date`
+- `dim_location`
+- `dim_well`
+
+Fact table:
+
+- `fact_production`
+
+The grain of the fact table is:
+
+> One row per well (`idpozo`) per month (`anio`, `mes`).
+
+---
+
+## Data Warehouse Setup
+
+### PostgreSQL Schemas
+
+The warehouse is organized into three schemas:
+
+```text
+bronze
+silver
+gold
+```
+
+---
+
+## Running the Data Pipeline
+
+### 1. Load raw data into Bronze
+
+Run the ingestion scripts:
+
+```bash
+python src/ingestion/extract_data.py
+```
+
+### 2. Execute dbt transformations
+
+Run all models:
+
+```bash
+dbt run
+```
+
+Run a specific layer:
+
+```bash
+dbt run --select silver
+dbt run --select gold
+```
+
+### 3. Execute data quality tests
+
+Run all tests:
+
+```bash
+dbt test
+```
+
+Run tests for a specific model:
+
+```bash
+dbt test --select silver_wells_production
+```
+
+---
+
+## Data Quality
+
+The project implements automated data quality checks using dbt.
+
+Implemented dimensions of quality include:
+
+* Completeness (`not_null`)
+* Uniqueness (`unique`)
+* Validity (`accepted_values`)
+* Referential integrity (`relationships`)
+* Business rules (`expression_is_true`)
+
+Some tests are configured as **warnings** instead of **errors** when source system inconsistencies are known and should not block the pipeline.
+
+Example:
+
+* Production wells that do not exist in `listed_wells` are flagged as warnings because removing them would result in data loss.
+
+---
+
+## Data Governance
+
+Data governance is implemented through:
+
+* dbt documentation
+* DataHub metadata catalog
+* Ownership metadata
+* Table lineage
+* Last update tracking
+
+Metadata includes:
+
+* Data owners
+* Teams
+* Sensitivity levels
+* PII indicators
+
+
+### Generating Documentation
+
+Generate dbt documentation:
+
+```bash
+dbt docs generate
+```
+
+
+### DataHub
+
+Generate metadata and lineage:
+
+```bash
+datahub ./ingest.sh
+```
+
+Open DataHub:
+
+```text
+http://localhost:9002
+```
+
+Features:
+
+* Table exploration
+* Column documentation
+* Ownership
+* Lineage visualization
+* Last synchronization information
+
+---
+
 ## Project structure
 
 ```bash

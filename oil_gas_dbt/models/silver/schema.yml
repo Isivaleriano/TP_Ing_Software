@@ -2,21 +2,41 @@ version: 2
 
 models:
   - name: silver_listed_wells
-    description: "Wells listed from bronze, cleaned and deduplicated by idpozo."
+    description: "Cleaned and deduplicated well master data from the bronze listed_wells source. One record per well, keeping the latest available fecha_data."
     meta:
       owner: "team-data"
       team: "analytics"
     columns:
       - name: idpozo
-        description: "Unique well ID."
+        description: "Unique identifier of the well."
         tests: [unique, not_null]
 
       - name: idempresa
-        description: "ID of the company operating the well."
+        description: "Identifier of the company associated with the well."
+        tests: [not_null]
+
+      - name: sigla
+        description: "Short code or acronym used to identify the well."
+
+      - name: formprod
+        description: "Productive formation associated with the well."
+
+      - name: profundidad
+        description: "Depth of the well. Values should not be negative."
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+
+      - name: areapermisoconcesion
+        description: "Permit or concession area associated with the well."
+        tests: [not_null]
+
+      - name: areayacimiento
+        description: "Field or reservoir area associated with the well."
         tests: [not_null]
 
       - name: cuenca
-        description: "Hydrocarbon basin (cuenca) associated with the well."
+        description: "Hydrocarbon basin associated with the well. Empty values are replaced with UNKNOWN."
         tests: [not_null]
 
       - name: provincia
@@ -26,36 +46,37 @@ models:
           pii: false
           sensitivity: "low"
 
-      - name: areapermisoconcesion
-        description: "Area, permit or concession associated with the well."
-        tests: [not_null]
-
-      - name: areayacimiento
-        description: "Area or deposit associated with the well."
-        tests: [not_null]
-      
-      - name: profundidad
-        description: "Well depth. It should not be negative."
-        tests:
-          - dbt_utils.expression_is_true:
-              expression: ">= 0"
-
       - name: coordenadax
-        description: "Geographic length of the well. It must be between -180 and 180."
+        description: "Longitude coordinate of the well. Expected range is between -180 and 180."
         tests:
           - not_null
           - dbt_utils.expression_is_true:
               expression: "between -180 and 180"
 
       - name: coordenaday
-        description: "Geographic latitude of the well. It must be between -90 and 90."
+        description: "Latitude coordinate of the well. Expected range is between -90 and 90."
         tests:
           - not_null
           - dbt_utils.expression_is_true:
               expression: "between -90 and 90"
 
+      - name: clasificacion
+        description: "General classification of the well."
+
+      - name: subclasificacion
+        description: "More detailed classification of the well."
+
+      - name: tipo_reservorio
+        description: "Type of reservoir associated with the well."
+
+      - name: subtipo_reservorio
+        description: "Subtype of reservoir associated with the well."
+
+      - name: fecha_data
+        description: "Date of the source record used to identify the most recent version of each well."
+
   - name: silver_wells_production
-    description: "Monthly well production from bronze, with clean records and valid data."
+    description: "Cleaned and deduplicated monthly well production records from the bronze wells_production source. One record per well, year and month, keeping the latest available fecha_data."
     meta:
       owner: "team-data"
       team: "analytics"
@@ -65,34 +86,160 @@ models:
             - idpozo
             - anio
             - mes
+
     columns:
       - name: idpozo
-        description: "Well ID associated with the production log."
+        description: "Identifier of the well associated with the production record."
         tests:
           - not_null
           - relationships:
               to: ref('silver_listed_wells')
               field: idpozo
+              config:
+                severity: warn
+
+      - name: idempresa
+        description: "Identifier of the company associated with the production record."
+
+      - name: empresa
+        description: "Name of the company associated with the production record."
 
       - name: anio
-        description: "Year of production record."
+        description: "Year of the production record."
         tests: [not_null]
 
       - name: mes
-        description: "Month of production record. Must be between 1 and 12."
+        description: "Month of the production record. Must be between 1 and 12."
         tests:
           - not_null
           - accepted_values:
               values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 
       - name: prod_pet
-        description: "Monthly oil production. Should not contain zero values."
-        tests: [not_null]
+        description: "Monthly oil production volume. Null values are replaced with 0."
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+              config:
+                severity: warn
 
       - name: prod_gas
-        description: "Monthly gas production. Should not contain zero values."
-        tests: [not_null]
+        description: "Monthly gas production volume. Null values are replaced with 0."
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+              config:
+                severity: warn
 
       - name: prod_agua
-        description: "Monthly water production. Should not contain zero values."
-        tests: [not_null]
+        description: "Monthly water production volume. Null values are replaced with 0."
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+              config:
+                severity: warn
+
+      - name: iny_agua
+        description: "Monthly water injection volume. Null values are replaced with 0."
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+              config:
+                severity: warn
+
+      - name: iny_gas
+        description: "Monthly gas injection volume. Null values are replaced with 0."
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+              config:
+                severity: warn
+
+      - name: iny_co2
+        description: "Monthly CO2 injection volume. Null values are replaced with 0."
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+              config:
+                severity: warn
+
+      - name: iny_otro
+        description: "Monthly injection volume of other substances. Null values are replaced with 0."
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+              config:
+                severity: warn
+
+      - name: tef
+        description: "Effective production time or operating time metric. Null values are replaced with 0."
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+              config:
+                severity: warn
+
+      - name: vida_util
+        description: "Useful life or operational life metric of the well. Null values are replaced with 0."
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+              config:
+                severity: warn
+
+      - name: tipoextraccion
+        description: "Extraction method used for the well."
+
+      - name: tipoestado
+        description: "Operational status of the well."
+
+      - name: tipopozo
+        description: "Type of well, such as oil, gas, water injection or other operational category."
+
+      - name: provincia
+        description: "Province where the producing well is located."
+
+      - name: cuenca
+        description: "Hydrocarbon basin associated with the production record."
+
+      - name: areayacimiento
+        description: "Field or reservoir area associated with the production record."
+
+      - name: areapermisoconcesion
+        description: "Permit or concession area associated with the production record."
+
+      - name: formprod
+        description: "Productive formation associated with the production record."
+
+      - name: formacion
+        description: "Geological formation associated with the well."
+
+      - name: tipo_de_recurso
+        description: "Type of hydrocarbon resource associated with the well."
+
+      - name: sub_tipo_recurso
+        description: "Subtype of hydrocarbon resource associated with the well."
+
+      - name: clasificacion
+        description: "General classification of the well in the production source."
+
+      - name: subclasificacion
+        description: "More detailed classification of the well in the production source."
+
+      - name: coordenadax
+        description: "Longitude coordinate of the well."
+
+      - name: coordenaday
+        description: "Latitude coordinate of the well."
+
+      - name: proyecto
+        description: "Project associated with the production record."
+
+      - name: fecha_data
+        description: "Date of the source record used to keep the latest version for each well, year and month."
+
+      - name: production_date
+        description: "Normalized production date created from anio and mes, always set to the first day of the month."

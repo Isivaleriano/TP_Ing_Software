@@ -1,0 +1,11 @@
+source:
+  type: dbt
+  config:
+    manifest_path: ../oil_gas_dbt/target/manifest.json
+    catalog_path: ../oil_gas_dbt/target/catalog.json
+    target_platform: postgres
+
+sink:
+  type: datahub-rest
+  config:
+    server: http://localhost:8080
