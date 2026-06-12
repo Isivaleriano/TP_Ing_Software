@@ -88,7 +88,9 @@ services:
     restart: unless-stopped
   
   airflow-init:
-    image: apache/airflow:2.9.1
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
     container_name: airflow_init
     depends_on:
       - postgres
@@ -106,7 +108,9 @@ services:
     restart: on-failure
 
   airflow-scheduler:
-    image: apache/airflow:2.9.1
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
     container_name: airflow_scheduler
     depends_on:
       - postgres
@@ -129,7 +133,9 @@ services:
     restart: unless-stopped
 
   airflow-webserver:
-    image: apache/airflow:2.9.1
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
     container_name: airflow_webserver
     depends_on:
       - postgres
