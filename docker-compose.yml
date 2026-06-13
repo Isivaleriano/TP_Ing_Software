@@ -159,8 +159,25 @@ services:
     command: webserver
     restart: unless-stopped
 
+  metabase:
+    image: metabase/metabase:v0.49.0
+    container_name: metabase
+    ports:
+      - "3000:3000"
+    environment:
+      MB_DB_TYPE: postgres
+      MB_DB_DBNAME: oilgas
+      MB_DB_PORT: 5432
+      MB_DB_USER: oilgas
+      MB_DB_PASS: oilgas
+      MB_DB_HOST: oilgas_postgres
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
 volumes:
   prometheus-data:
   grafana-data:
   postgres-data:
   airflow-logs:
+  metabase-data: 
