@@ -33,7 +33,7 @@ with DAG(
 
     transform = BashOperator(
         task_id="dbt_run",
-        bash_command="cd /opt/airflow/project/oil_gas_dbt && dbt run --profiles-dir .",
+        bash_command="cd /opt/airflow/project/oil_gas_dbt && /home/airflow/dbt-env/bin/dbt run --profiles-dir .",
     )
 
     extract >> load_bronze >> transform
