@@ -13,7 +13,9 @@ Developed as part of the Software Engineering course.
 
 This project is a mock REST API that simulates a hydrocarbon production 
 forecasting platform. It exposes endpoints to query wells and their 
-production forecasts, secured via API Key authentication.
+production forecasts, secured via API Key authentication. It also includes
+a full data integration pipeline with Bronze, Silver and Gold layers,
+orchestrated by Apache Airflow and visualized through Metabase.
 
 ## Requirements
 
@@ -38,29 +40,29 @@ pip install -r api/v1/requirements.txt
 uvicorn api.v1.main:app --host 0.0.0.0 --port 8000
 ```
 
-**4. Or run with Docker:**
+**4. Or run all services with Docker Compose:**
 ```bash
-docker pull ghcr.io/isivaleriano/tp_ing_software:latest
-docker run -d --name forecast-api -p 8000:8000 ghcr.io/isivaleriano/tp_ing_software:latest
+docker compose up -d
 ```
 
+## Live Demo
+
+All services are publicly available:
+
+| Service | URL | Credentials |
+|---------|-----|-------------|
+| Swagger UI | http://100.58.114.58:8000/docs | X-API-Key: abcdef12345 |
+| OpenAPI JSON | http://100.58.114.58:8000/openapi.json | - |
+| Metrics | http://100.58.114.58:8000/metrics | - |
+| Prometheus | http://100.58.114.58:9090 | - |
+| Grafana | http://100.58.114.58:3001 | admin / Software_tp |
+| Airflow | http://100.58.114.58:8090 | admin / admin |
+| Metabase | http://100.58.114.58:3000 | - |
+
+> **Note:** The EC2 instance has a dynamic public IP that changes on restart.
+> Contact the team for the current URL during the correction period.
+
 ## API Documentation
-
-### Production Environment (AWS EC2)
-
-Interactive Swagger documentation:
-
-http://52.87.250.147:8000/docs
-
-OpenAPI specification:
-
-http://52.87.250.147:8000/openapi.json
-
-### Local Environment
-
-http://localhost:8000/docs
-
-## Endpoints
 
 All endpoints require the header `X-API-Key: abcdef12345`.
 
@@ -126,23 +128,9 @@ Requests without a valid key return HTTP 403 Forbidden.
 
 ## Deployment
 
-The API is deployed on AWS EC2 using Docker. The deployment is automated 
-via GitHub Actions — every push to `main` that passes tests automatically 
-builds, publishes and deploys the new image to the EC2 instance.
-
-### Production URLs
-
-- API Documentation: http://52.87.250.147:8000/docs
-- OpenAPI Specification: http://52.87.250.147:8000/openapi.json
-- Prometheus: http://52.87.250.147:9090
-- Grafana: http://52.87.250.147:3001
-
-Grafana credentials:
-
-- User: admin
-- Password: Software_tp
-
-> Note: The application is deployed on an AWS EC2 instance through an automated CI/CD pipeline using GitHub Actions.
+The API is deployed on AWS EC2 (t3.xlarge) using Docker Compose. The deployment
+is automated via GitHub Actions — every push to `main` that passes tests
+automatically builds, publishes and deploys the new image to the EC2 instance.
 
 ## CI/CD
 
@@ -152,266 +140,89 @@ Two GitHub Actions workflows are configured:
 - **docker_publish.yml** — runs on push to `main`. Builds and publishes the Docker image to GitHub Container Registry, then deploys automatically to EC2.
 
 ## Running tests
-Functional tests of endpoints and security tests were implemented to validate API Key authentication across all endpoints.
-To run all tests:
+
 ```bash
 python -m unittest discover -s tests
 ```
-To run a specific test file:
-```bash
-python -m unittest discover -s tests/tests_forecast.py
-```
-To run a specific test:
-```bash
-python -m unittest discover -s tests/tests_forecast.py/test_status_code_ok
-```
 
-## Dashboard
+## Monitoring Dashboard
 
-A monitoring dashboard was implemented using **Prometheus** and **Grafana** to ensure system performance, reliability and observability.
+A monitoring dashboard is implemented using **Prometheus** and **Grafana**.
 
-### Monitoring Architecture
+- **FastAPI** exposes metrics via `/metrics`
+- **Prometheus** scrapes metrics every 15 seconds
+- **Grafana** visualizes data and manages alerting
 
-- **FastAPI** exposes metrics via `/metrics` using `prometheus-fastapi-instrumentator`
-- **Prometheus** scrapes metrics from the API
-- **Grafana** visualizes the data and manages alerting
+Access Grafana at `http://100.58.114.58:3001` (admin / Software_tp).
 
-The system is orchestrated using Docker. 
+An alerting system detects service outages, high error rates and performance degradation.
 
-## System Performance Metrics
+## Data Integration
 
-The API exposes metrics at:
+### Architecture
 
-Production:
-http://52.87.250.147:8000/metrics
+The project follows a Medallion Architecture with three layers:
 
-Local:
-http://localhost:8000/metrics
+**Bronze** — raw data ingested from Argentina's public oil and gas datasets (datos.gob.ar).
 
-To verify that Prometheus is correctly scraping the API, access:
-```bash
-http://localhost:9090/targets
-```
-
-#### How to open the Dashboard?
-
-1. Start all services (API + Prometheus + Grafana). It can be easily done by docker compose:
-```bash
-docker compose up --build
-```
-
-2. Open Grafana in browser
-
-Production:
-http://52.87.250.147:3001
-
-Local:
-http://localhost:3001
-
-3. Login:
-- User: admin
-- Password: Software_tp
-
-### Alerts
-An alerting system is in place to detect abnormal system behavior, including service outages, high error rates, and performance degradation.
-Note: Email notifications are not fully configured due to AWS cost constraints. The system is prepared to support notification channels if needed.
-
-#### Dashboard Notes
-- Metrics are updated in near real-time
-- Some panels require continuous traffic to display values
-- To test alerting behavior, manual requests or simulated failures can be performed
-
-## Live Demo
-
-The application is publicly available for evaluation:
-
-| Service | URL |
-|----------|----------|
-| Swagger UI | http://52.87.250.147:8000/docs |
-| OpenAPI JSON | http://52.87.250.147:8000/openapi.json |
-| Forecast API | http://52.87.250.147:8000/api/v1 |
-| Metrics | http://52.87.250.147:8000/metrics |
-| Prometheus | http://52.87.250.147:9090 |
-| Grafana | http://52.87.250.147:3001 |
-
-Grafana credentials:
-
-- User: admin
-- Password: Software_tp
-
-
-
-
-# Data Integration
-## Data Engineering Architecture
-
-The project follows a Medallion Architecture composed of three layers.
-
-### Bronze Layer
-
-Stores raw data ingested from Argentina's public oil and gas datasets (`datos.gob.ar`). Data in this layer is preserved without modifications to ensure reproducibility and future reprocessing.
-
-### Silver Layer
-
-Contains cleaned and standardized data. Transformations include:
-
-- Type casting
-- Null handling
-- Deduplication
-- String trimming
-- Domain validation
-
-Silver models:
-
+**Silver** — cleaned and standardized data:
 - `silver_listed_wells`
 - `silver_wells_production`
 
-### Gold Layer
+**Gold** — star schema optimized for analytics:
+- `dim_company`, `dim_date`, `dim_location`, `dim_well`
+- `fact_production` (grain: one row per well per month)
 
-Implements a dimensional model optimized for analytics using a star schema.
+### Orchestration
 
-Dimensions:
+The data pipeline is orchestrated by **Apache Airflow** running on port 8090.
+The DAG `oil_gas_pipeline` runs daily at 06:00 UTC with the following tasks:
 
-- `dim_company`
-- `dim_date`
-- `dim_location`
-- `dim_well`
+1. `extract_data` — downloads raw CSVs from official sources
+2. `load_bronze` — loads CSVs into PostgreSQL bronze schema
+3. `dbt_run` — builds Silver and Gold layers
+4. `dbt_test` — runs data quality checks
+5. `persist_quality_results` — persists test results to PostgreSQL
 
-Fact table:
+To update the workflows, trigger a new DAG run from the Airflow UI at
+`http://100.58.114.58:8090` or push a change to `main`.
 
-- `fact_production`
+### BI Platform
 
-The grain of the fact table is:
+**Metabase** is available at `http://100.58.114.58:3000`. It connects directly
+to the PostgreSQL data warehouse and exposes Bronze, Silver, Gold and Public
+schemas for exploration by non-technical users.
 
-> One row per well (`idpozo`) per month (`anio`, `mes`).
+### Data Quality
 
----
+Data quality checks are implemented using dbt tests covering:
 
-## Data Warehouse Setup
+- Completeness (`not_null`)
+- Uniqueness (`unique`)
+- Validity (`accepted_values`)
+- Referential integrity (`relationships`)
+- Business rules (`expression_is_true`)
 
-### PostgreSQL Schemas
+Results are persisted in the `quality.test_results` table in PostgreSQL and
+are visible in Metabase under the quality schema.
 
-The warehouse is organized into three schemas:
+### Data Governance
 
-```text
-bronze
-silver
-gold
-```
-
----
-
-## Running the Data Pipeline
-
-### 1. Load raw data into Bronze
-
-Run the ingestion scripts:
-
-```bash
-python src/ingestion/extract_data.py
-```
-
-### 2. Execute dbt transformations
-
-Run all models:
-
-```bash
-dbt run
-```
-
-Run a specific layer:
-
-```bash
-dbt run --select silver
-dbt run --select gold
-```
-
-### 3. Execute data quality tests
-
-Run all tests:
-
-```bash
-dbt test
-```
-
-Run tests for a specific model:
-
-```bash
-dbt test --select silver_wells_production
-```
-
----
-
-## Data Quality
-
-The project implements automated data quality checks using dbt.
-
-Implemented dimensions of quality include:
-
-* Completeness (`not_null`)
-* Uniqueness (`unique`)
-* Validity (`accepted_values`)
-* Referential integrity (`relationships`)
-* Business rules (`expression_is_true`)
-
-Some tests are configured as **warnings** instead of **errors** when source system inconsistencies are known and should not block the pipeline.
-
-Example:
-
-* Production wells that do not exist in `listed_wells` are flagged as warnings because removing them would result in data loss.
-
----
-
-## Data Governance
-
-Data governance is implemented through:
-
-* dbt documentation
-* DataHub metadata catalog
-* Ownership metadata
-* Table lineage
-* Last update tracking
-
-Metadata includes:
-
-* Data owners
-* Teams
-* Sensitivity levels
-* PII indicators
-
-
-### Generating Documentation
-
-Generate dbt documentation:
+Data governance is implemented through dbt documentation and DataHub:
 
 ```bash
 dbt docs generate
 ```
 
+Open DataHub at `http://localhost:9002`.
 
-### DataHub
-
-Generate metadata and lineage:
+### Running the pipeline manually
 
 ```bash
-datahub ./ingest.sh
+python src/ingestion/extract_data.py
+dbt run
+dbt test
 ```
-
-Open DataHub:
-
-```text
-http://localhost:9002
-```
-
-Features:
-
-* Table exploration
-* Column documentation
-* Ownership
-* Lineage visualization
-* Last synchronization information
-
----
 
 ## Project structure
 
@@ -431,27 +242,31 @@ TP_Ing_Software/
 │       ├── main.py
 │       ├── requirements.txt
 │       └── security.py
+├── dags/
+│   └── oil_gas_pipeline.py
 ├── monitoring/
 │   ├── grafana/
-│   │   ├── dasboards/
-│   │   │   └── monitoring.json
-│   │   └── provisioning
-│   │       ├── alerting
-│   │       │   ├── contactpoint.yml
-│   │       │   └── notificationpolicies.yml               
-│   │       ├── dashboards
-│   │       │   └── dashboard.yml
-│   │       └── datasources
-│   │           └── prometheus.yml
 │   └── prometheus/
-│       ├──rules/
-│       │   └── alerts.yml
-│       └── prometheus.yml
+├── oil_gas_dbt/
+│   └── models/
+│       ├── silver/
+│       └── gold/
+├── src/
+│   ├── ingestion/
+│   │   └── extract_data.py
+│   ├── transformations/
+│   ├── warehouse/
+│   │   └── load_bronze.py
+│   └── quality/
+│       └── persist_dbt_results.py
 ├── tests/
 │   ├── tests_forecast.py
 │   ├── tests_security.py
 │   └── tests_wells.py
+├── adrs/
 ├── docker-compose.yml
+├── Dockerfile.airflow
 ├── insomnia.yaml
 ├── openapi.yaml
 └── README.md
+```
