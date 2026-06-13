@@ -1,0 +1,13 @@
+version: 2
+
+sources:
+  - name: bronze
+    schema: bronze
+    description: "Raw data ingested from Argentina's open energy datasets."
+
+    tables:
+      - name: listed_wells
+        description: "Raw well metadata ingested from datos.gob.ar."
+
+      - name: wells_production
+        description: "Raw monthly oil and gas production data ingested from datos.gob.ar."

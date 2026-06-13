@@ -1,35 +1,283 @@
 version: 2
 
 models:
-  - name: dim_well
-    columns:
-      - name: well_key
-        tests: [not_null, unique]
-      - name: idpozo
-        description: "Business key del pozo. Puede ser null únicamente para la fila UNKNOWN usada para preservar registros de producción sin match en la dimensión."
-
   - name: dim_company
+    description: "Dimension table containing unique operating companies extracted from well master data."
+    meta:
+      owner: "team-data"
+      team: "analytics"
     columns:
-      - name: company_key
-        tests: [not_null, unique]
-      - name: idempresa
-        tests: [not_null]
+      - name: company_sk
+        description: "Surrogate key that uniquely identifies a company."
+        tests:
+          - unique
+          - not_null
 
-  - name: dim_location
-    columns:
-      - name: location_key
-        tests: [not_null, unique]
+      - name: idempresa
+        description: "Business identifier of the company."
+        tests:
+          - unique
+          - not_null
 
   - name: dim_date
+    description: "Date dimension at monthly granularity used for production analysis."
+    meta:
+      owner: "team-data"
+      team: "analytics"
     columns:
-      - name: date_key
-        tests: [not_null, unique]
+      - name: date_sk
+        description: "Date surrogate key in YYYYMM format."
+        tests:
+          - unique
+          - not_null
+
+      - name: anio
+        description: "Calendar year associated with the production record."
+        tests:
+          - not_null
+
+      - name: mes
+        description: "Calendar month associated with the production record."
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+
+      - name: quarter
+        description: "Quarter of the year derived from the month."
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4]
+
+  - name: dim_location
+    description: "Geographical dimension describing the location of wells."
+    meta:
+      owner: "team-data"
+      team: "analytics"
+    columns:
+      - name: location_sk
+        description: "Surrogate key uniquely identifying a location."
+        tests:
+          - unique
+          - not_null
+
+      - name: provincia
+        description: "Province where the well is located."
+
+      - name: cuenca
+        description: "Hydrocarbon basin associated with the well."
+
+      - name: areayacimiento
+        description: "Field or reservoir area associated with the well."
+
+      - name: areapermisoconcesion
+        description: "Permit or concession area associated with the well."
+
+  - name: dim_well
+    description: "Dimension table containing one record per well with its most recent production-related attributes. Includes an UNKNOWN record with well_sk = 0."
+    meta:
+      owner: "team-data"
+      team: "analytics"
+    columns:
+      - name: well_sk
+        description: "Surrogate key uniquely identifying a well."
+        tests:
+          - unique
+          - not_null
+
+      - name: idpozo
+        description: "Business identifier of the well. It may be null only for the UNKNOWN record."
+        tests:
+          - unique
+
+      - name: tipopozo
+        description: "Type of well, such as oil, gas, water injection or another operational category."
+
+      - name: tipoextraccion
+        description: "Extraction method used by the well."
+
+      - name: tipoestado
+        description: "Operational status of the well."
+
+      - name: formacion
+        description: "Geological formation associated with the well."
+
+      - name: formprod
+        description: "Productive formation associated with the well."
+
+      - name: tipo_de_recurso
+        description: "Type of hydrocarbon resource."
+
+      - name: sub_tipo_recurso
+        description: "Subtype of hydrocarbon resource."
+
+      - name: clasificacion
+        description: "General classification of the well."
+
+      - name: subclasificacion
+        description: "More detailed classification of the well."
+
+      - name: vida_util
+        description: "Useful life or operational life metric of the well."
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+              config:
+                severity: warn
+
+      - name: coordenadax
+        description: "Longitude coordinate of the well."
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: "between -180 and 180"
+              config:
+                severity: warn
+
+      - name: coordenaday
+        description: "Latitude coordinate of the well."
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: "between -90 and 90"
+              config:
+                severity: warn
 
   - name: fact_production
+    description: "Fact table containing monthly production and injection measures for each well."
+    meta:
+      owner: "team-data"
+      team: "analytics"
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - idpozo
+            - anio
+            - mes
+
     columns:
-      - name: production_key
-        tests: [not_null, unique]
-      - name: well_key
-        tests: [not_null]
-      - name: date_key
-        tests: [not_null]
+      - name: production_sk
+        description: "Surrogate key uniquely identifying a monthly production record."
+        tests:
+          - unique
+          - not_null
+
+      - name: well_sk
+        description: "Foreign key referencing dim_well. Defaults to 0 when the well is not found in the dimension."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_well')
+              field: well_sk
+
+      - name: company_sk
+        description: "Foreign key referencing dim_company. Defaults to 0 when the company is not found in the dimension."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_company')
+              field: company_sk
+              config:
+                severity: warn
+
+      - name: location_sk
+        description: "Foreign key referencing dim_location. Defaults to 0 when the location is not found in the dimension."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_location')
+              field: location_sk
+              config:
+                severity: warn
+
+      - name: date_sk
+        description: "Foreign key referencing dim_date."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_date')
+              field: date_sk
+
+      - name: idpozo
+        description: "Business identifier of the well."
+        tests:
+          - not_null
+
+      - name: anio
+        description: "Production year."
+        tests:
+          - not_null
+
+      - name: mes
+        description: "Production month."
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+
+      - name: prod_pet
+        description: "Monthly oil production volume."
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+              config:
+                severity: warn
+
+      - name: prod_gas
+        description: "Monthly gas production volume."
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+              config:
+                severity: warn
+
+      - name: prod_agua
+        description: "Monthly water production volume."
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+              config:
+                severity: warn
+
+      - name: iny_agua
+        description: "Monthly water injection volume."
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+              config:
+                severity: warn
+
+      - name: iny_gas
+        description: "Monthly gas injection volume."
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+              config:
+                severity: warn
+
+      - name: iny_co2
+        description: "Monthly CO2 injection volume."
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+              config:
+                severity: warn
+
+      - name: iny_otro
+        description: "Monthly injection volume of other substances."
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+              config:
+                severity: warn
+
+      - name: tef
+        description: "Effective production time or operating time metric."
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+              config:
+                severity: warn

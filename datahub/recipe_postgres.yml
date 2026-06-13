@@ -1,0 +1,17 @@
+source:
+  type: postgres
+  config:
+    host_port: localhost:5432
+    database: oilgas
+    username: oilgas
+    password: oilgas
+    schema_pattern:
+      allow:
+        - bronze
+        - silver
+        - gold
+
+sink:
+  type: datahub-rest
+  config:
+    server: http://localhost:8080

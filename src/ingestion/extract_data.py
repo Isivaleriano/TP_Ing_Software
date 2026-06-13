@@ -3,7 +3,7 @@
 from pathlib import Path
 import requests
 
-BRONZE_DIR = Path( "data/bronze" )
+BRONZE_DIR = Path( __file__ ).resolve().parents[2] / "data" / "bronze"
 DATASETS = {
     "wells_production.csv": "http://datos.energia.gob.ar/dataset/c846e79c-026c-4040-897f-1ad3543b407c/resource/b5b58cdc-9e07-41f9-b392-fb9ec68b0725/download/produccin-de-pozos-de-gas-y-petrleo-no-convencional.csv",
     "listed_wells.csv": "http://datos.energia.gob.ar/dataset/c846e79c-026c-4040-897f-1ad3543b407c/resource/cbfa4d79-ffb3-4096-bab5-eb0dde9a8385/download/listado-de-pozos-cargados-por-empresas-operadoras.csv",
