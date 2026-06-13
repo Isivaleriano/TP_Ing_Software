@@ -35,5 +35,13 @@ with DAG(
         task_id="dbt_run",
         bash_command="cd /opt/airflow/project/oil_gas_dbt && /home/airflow/dbt-env/bin/dbt deps --profiles-dir . --no-use-colors && /home/airflow/dbt-env/bin/dbt run --profiles-dir . --no-use-colors --no-partial-parse",
     )
+    
+    test = BashOperator(
+        task_id="dbt_test",
+        bash_command="""
+        cd /opt/airflow/project/oil_gas_dbt &&
+        /home/airflow/dbt-env/bin/dbt test --profiles-dir . --no-use-colors --no-partial-parse
+        """,
+    )
 
-    extract >> load_bronze >> transform
+    extract >> load_bronze >> transform >> test
