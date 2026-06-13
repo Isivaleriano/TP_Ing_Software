@@ -4,7 +4,7 @@ import pandas as pd
 from sqlalchemy import create_engine, text
 
 
-DB_URL = "postgresql+psycopg2://oilgas:oilgas@localhost:5432/oilgas"
+DB_URL = "postgresql+psycopg2://oilgas:oilgas@oilgas_postgres:5432/oilgas"
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 
