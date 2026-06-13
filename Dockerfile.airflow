@@ -5,12 +5,8 @@ RUN apt-get update && apt-get install -y git libpq-dev && apt-get clean
 
 USER airflow
 RUN pip install --no-cache-dir \
+    "dbt-core==1.8.0" \
     "dbt-postgres==1.8.0" \
-    --no-deps \
-    && pip install --no-cache-dir \
-    dbt-core \
-    dbt-adapters \
-    dbt-common \
     requests \
     pandas \
     sqlalchemy \
