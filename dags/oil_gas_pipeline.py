@@ -44,4 +44,9 @@ with DAG(
         """,
     )
 
-    extract >> load_bronze >> transform >> test
+    persist_quality = BashOperator(
+        task_id="persist_quality_results",
+        bash_command="cd /opt/airflow/project && python src/quality/persist_dbt_results.py",
+    )
+
+    extract >> load_bronze >> transform >> test >> persist_quality
