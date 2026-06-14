@@ -3,7 +3,7 @@ status: Accepted
 date: 13/06/2026
 decision-makers: Isidro Valeriano
 consulted: Florencia Zoffi, María Belén Depalo
-informed: -
+informed: none
 ---
 
 # Data Quality Persistence Strategy
