@@ -90,7 +90,7 @@ SELECT
     coordenaday,
     proyecto,
     fecha_data,
-    production_date
+    production_date,
     rectificado
 
 FROM raw
