@@ -243,3 +243,5 @@ models:
 
       - name: production_date
         description: "Normalized production date created from anio and mes, always set to the first day of the month."
+      - name: rectificado
+        description: "Source-system flag indicating whether the production record was rectified."
