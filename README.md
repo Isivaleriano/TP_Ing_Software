@@ -208,13 +208,19 @@ are visible in Metabase under the quality schema.
 
 ### Data Governance
 
-Data governance is implemented through dbt documentation and DataHub:
+Data governance is implemented through dbt documentation and a DataHub catalog
+(search, ownership, docs, and lineage across Bronze, Silver and Gold).
+
+DataHub is **not part of the public live demo** above — it does not run on the EC2 instance. It runs on demand via Docker Compose, on whichever machine needs to browse it:
 
 ```bash
-dbt docs generate
+docker compose -f datahub/docker-compose.yml up -d
+cd oil_gas_dbt && dbt docs generate && cd ..
+./datahub/ingest.sh
 ```
 
-Open DataHub at `http://localhost:9002`.
+Once running, the catalog and lineage graph are browsable at `http://localhost:9002`
+(login `datahub` / `datahub`). See [datahub/README.md](datahub/README.md) for details.
 
 ### Running the pipeline manually
 
@@ -244,6 +250,11 @@ TP_Ing_Software/
 │       └── security.py
 ├── dags/
 │   └── oil_gas_pipeline.py
+├── datahub/
+│   ├── docker-compose.yml
+│   ├── recipe_postgres.yml
+│   ├── recipe_dbt.yml
+│   └── ingest.sh
 ├── monitoring/
 │   ├── grafana/
 │   └── prometheus/

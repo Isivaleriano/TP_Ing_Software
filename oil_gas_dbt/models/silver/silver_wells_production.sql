@@ -44,6 +44,8 @@ WITH raw AS (
         NULLIF(TRIM(fecha_data), '')::date   AS fecha_data,
         MAKE_DATE(anio::int, mes::int, 1)    AS production_date,
 
+        TRIM(rectificado)::varchar           AS rectificado,
+
         ROW_NUMBER() OVER (
             PARTITION BY idpozo, anio, mes
             ORDER BY NULLIF(TRIM(fecha_data), '')::date DESC NULLS LAST
@@ -88,7 +90,8 @@ SELECT
     coordenaday,
     proyecto,
     fecha_data,
-    production_date
+    production_date,
+    rectificado
 
 FROM raw
 WHERE rn = 1
