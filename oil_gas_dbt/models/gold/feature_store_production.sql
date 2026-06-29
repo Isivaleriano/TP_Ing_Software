@@ -6,6 +6,9 @@ with base as (
         -- Fact production: se importan todas las columnas existentes del fact
         fp.*,
 
+        -- Fecha de producción como primer día del mes, para poder hacer joins
+        make_date(fp.anio, fp.mes, 1) as production_month,
+
         -- Dim company
         dc.idempresa,
 
@@ -51,133 +54,72 @@ with base as (
 features as (
 
     select
-        *,
+        b.*,
 
-        -- Lags petróleo: producción de petróleo de meses anteriores
-        lag(prod_pet, 1) over (
-            partition by idpozo
-            order by anio, mes
-        ) as prod_pet_lag_1,
+        -- Petróleo: lags por mes calendario real
+        pet_lag_1.prod_pet as prod_pet_lag_1,
+        pet_lag_2.prod_pet as prod_pet_lag_2,
+        pet_lag_3.prod_pet as prod_pet_lag_3,
+        pet_lag_4.prod_pet as prod_pet_lag_4,
+        pet_lag_5.prod_pet as prod_pet_lag_5,
+        pet_lag_6.prod_pet as prod_pet_lag_6,
+        pet_lag_12.prod_pet as prod_pet_lag_12,
 
-        lag(prod_pet, 2) over (
-            partition by idpozo
-            order by anio, mes
-        ) as prod_pet_lag_2,
+        -- Gas: lags por mes calendario real
+        pet_lag_1.prod_gas as prod_gas_lag_1,
+        pet_lag_2.prod_gas as prod_gas_lag_2,
+        pet_lag_3.prod_gas as prod_gas_lag_3,
+        pet_lag_4.prod_gas as prod_gas_lag_4,
+        pet_lag_5.prod_gas as prod_gas_lag_5,
+        pet_lag_6.prod_gas as prod_gas_lag_6,
+        pet_lag_12.prod_gas as prod_gas_lag_12,
 
-        lag(prod_pet, 3) over (
-            partition by idpozo
-            order by anio, mes
-        ) as prod_pet_lag_3,
+        -- Agua: lags por mes calendario real
+        pet_lag_1.prod_agua as prod_agua_lag_1,
+        pet_lag_2.prod_agua as prod_agua_lag_2,
+        pet_lag_3.prod_agua as prod_agua_lag_3,
+        pet_lag_4.prod_agua as prod_agua_lag_4,
+        pet_lag_5.prod_agua as prod_agua_lag_5,
+        pet_lag_6.prod_agua as prod_agua_lag_6,
+        pet_lag_12.prod_agua as prod_agua_lag_12,
 
-        lag(prod_pet, 4) over (
-            partition by idpozo
-            order by anio, mes
-        ) as prod_pet_lag_4,
+        target.prod_pet as target_prod_pet_next_month
 
-        lag(prod_pet, 5) over (
-            partition by idpozo
-            order by anio, mes
-        ) as prod_pet_lag_5,
+    from base b
 
-        lag(prod_pet, 6) over (
-            partition by idpozo
-            order by anio, mes
-        ) as prod_pet_lag_6,
+    left join base pet_lag_1
+        on b.idpozo = pet_lag_1.idpozo
+       and pet_lag_1.production_month = b.production_month - interval '1 month'
 
-        lag(prod_pet, 12) over (
-            partition by idpozo
-            order by anio, mes
-        ) as prod_pet_lag_12,
+    left join base pet_lag_2
+        on b.idpozo = pet_lag_2.idpozo
+       and pet_lag_2.production_month = b.production_month - interval '2 month'
 
-        -- Lags gas: producción de gas de meses anteriores
-        lag(prod_gas, 1) over (
-            partition by idpozo
-            order by anio, mes
-        ) as prod_gas_lag_1,
+    left join base pet_lag_3
+        on b.idpozo = pet_lag_3.idpozo
+       and pet_lag_3.production_month = b.production_month - interval '3 month'
 
-        lag(prod_gas, 2) over (
-            partition by idpozo
-            order by anio, mes
-        ) as prod_gas_lag_2,
+    left join base pet_lag_4
+        on b.idpozo = pet_lag_4.idpozo
+       and pet_lag_4.production_month = b.production_month - interval '4 month'
 
-        lag(prod_gas, 3) over (
-            partition by idpozo
-            order by anio, mes
-        ) as prod_gas_lag_3,
+    left join base pet_lag_5
+        on b.idpozo = pet_lag_5.idpozo
+       and pet_lag_5.production_month = b.production_month - interval '5 month'
 
-        lag(prod_gas, 4) over (
-            partition by idpozo
-            order by anio, mes
-        ) as prod_gas_lag_4,
+    left join base pet_lag_6
+        on b.idpozo = pet_lag_6.idpozo
+       and pet_lag_6.production_month = b.production_month - interval '6 month'
 
-        lag(prod_gas, 5) over (
-            partition by idpozo
-            order by anio, mes
-        ) as prod_gas_lag_5,
+    left join base pet_lag_12
+        on b.idpozo = pet_lag_12.idpozo
+       and pet_lag_12.production_month = b.production_month - interval '12 month'
 
-        lag(prod_gas, 6) over (
-            partition by idpozo
-            order by anio, mes
-        ) as prod_gas_lag_6,
-
-        lag(prod_gas, 12) over (
-            partition by idpozo
-            order by anio, mes
-        ) as prod_gas_lag_12,
-
-        -- Lags agua: producción de agua de meses anteriores
-        lag(prod_agua, 1) over (
-            partition by idpozo
-            order by anio, mes
-        ) as prod_agua_lag_1,
-
-        lag(prod_agua, 2) over (
-            partition by idpozo
-            order by anio, mes
-        ) as prod_agua_lag_2,
-
-        lag(prod_agua, 3) over (
-            partition by idpozo
-            order by anio, mes
-        ) as prod_agua_lag_3,
-
-        lag(prod_agua, 4) over (
-            partition by idpozo
-            order by anio, mes
-        ) as prod_agua_lag_4,
-
-        lag(prod_agua, 5) over (
-            partition by idpozo
-            order by anio, mes
-        ) as prod_agua_lag_5,
-
-        lag(prod_agua, 6) over (
-            partition by idpozo
-            order by anio, mes
-        ) as prod_agua_lag_6,
-
-        lag(prod_agua, 12) over (
-            partition by idpozo
-            order by anio, mes
-        ) as prod_agua_lag_12,
-
-        -- Target: lo que queremos predecir
-        lead(prod_pet, 1) over (
-            partition by idpozo
-            order by anio, mes
-        ) as target_prod_pet_next_month
-
-    from base
+    left join base target
+        on b.idpozo = target.idpozo
+       and target.production_month = b.production_month + interval '1 month'
 
 )
 
 select *
 from features
-where target_prod_pet_next_month is not null
-  and prod_pet_lag_1 is not null
-  and prod_pet_lag_2 is not null
-  and prod_pet_lag_3 is not null
-  and prod_pet_lag_4 is not null
-  and prod_pet_lag_5 is not null
-  and prod_pet_lag_6 is not null
-  and prod_pet_lag_12 is not null
