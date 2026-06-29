@@ -281,3 +281,84 @@ models:
               expression: ">= 0"
               config:
                 severity: warn
+  - name: feature_store_production
+    description: Machine Learning Feature Store used for model training and inference. This model consolidates all features already available in the Gold layer (fact_production, dim_well, dim_company, dim_location and dim_date) and enriches them with engineered temporal features based on historical production values, together with the prediction target.
+    meta:
+      owner: "team-data"
+      team: "analytics"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - idpozo
+            - anio
+            - mes
+    columns:
+      - name: prod_pet_lag_1
+        description: "Oil production recorded one month before the current observation."
+
+      - name: prod_pet_lag_2
+        description: "Oil production recorded two months before the current observation."
+
+      - name: prod_pet_lag_3
+        description: "Oil production recorded three months before the current observation."
+
+      - name: prod_pet_lag_4
+        description: "Oil production recorded four months before the current observation."
+
+      - name: prod_pet_lag_5
+        description: "Oil production recorded five months before the current observation."
+
+      - name: prod_pet_lag_6
+        description: "Oil production recorded six months before the current observation."
+
+      - name: prod_pet_lag_12
+        description: "Oil production recorded twelve months before the current observation, capturing yearly seasonality."
+
+      - name: prod_gas_lag_1
+        description: "Gas production recorded one month before the current observation."
+
+      - name: prod_gas_lag_2
+        description: "Gas production recorded two months before the current observation."
+
+      - name: prod_gas_lag_3
+        description: "Gas production recorded three months before the current observation."
+
+      - name: prod_gas_lag_4
+        description: "Gas production recorded four months before the current observation."
+
+      - name: prod_gas_lag_5
+        description: "Gas production recorded five months before the current observation."
+
+      - name: prod_gas_lag_6
+        description: "Gas production recorded six months before the current observation."
+
+      - name: prod_gas_lag_12
+        description: "Gas production recorded twelve months before the current observation."
+
+      - name: prod_agua_lag_1
+        description: "Water production recorded one month before the current observation."
+
+      - name: prod_agua_lag_2
+        description: "Water production recorded two months before the current observation."
+
+      - name: prod_agua_lag_3
+        description: "Water production recorded three months before the current observation."
+
+      - name: prod_agua_lag_4
+        description: "Water production recorded four months before the current observation."
+
+      - name: prod_agua_lag_5
+        description: "Water production recorded five months before the current observation."
+
+      - name: prod_agua_lag_6
+        description: "Water production recorded six months before the current observation."
+
+      - name: prod_agua_lag_12
+        description: "Water production recorded twelve months before the current observation."
+
+      - name: target_prod_pet_next_month
+        description: >
+          Supervised learning target representing the oil production
+          expected for the following month.
+        tests:
+          - not_null
