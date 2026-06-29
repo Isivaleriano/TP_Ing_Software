@@ -206,6 +206,18 @@ Data quality checks are implemented using dbt tests covering:
 Results are persisted in the `quality.test_results` table in PostgreSQL and
 are visible in Metabase under the quality schema.
 
+### Feature Store
+
+Two Gold dbt models support the production forecasting model (Phase 3):
+
+- `gold.feature_store_production` — every well-month, with lag features
+  (`prod_pet_lag_1`...`lag_12`, and the same for gas/water) computed by calendar
+  month rather than row position, so wells with gaps in their reporting history
+  don't get a mislabeled lag. Includes each well's most recent month, used for
+  inference.
+- `gold.training_dataset_production` — the same table filtered to rows with a
+  known `target_prod_pet_next_month`, used for training.
+
 ### Data Governance
 
 Data governance is implemented through dbt documentation and a DataHub catalog
