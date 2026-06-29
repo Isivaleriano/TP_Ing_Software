@@ -1,27 +1,8 @@
-"""Trains the well production forecasting model end to end, automating the
-procedure developed in notebooks/02_mlflow_training_experiment.ipynb:
-
-1. Load gold.training_dataset_production.
-2. Drop constant (zero-variance) numeric columns.
-3. Split chronologically into train / validation / test (no random shuffling:
-   test is always strictly after validation, which is always strictly after
-   train).
-4. Grid search HistGradientBoostingRegressor and RandomForestRegressor on
-   train, evaluate on validation, logging every run to MLflow.
-5. Pick the overall best config by validation RMSE (the primary metric used
-   in the notebook's comparison).
-6. Retrain that config on train+validation, evaluate once on the held-out
-   test set, and register/alias the result as "Champion".
-
-Run with: python mlflow/train.py
-"""
-
 import os
 
 import mlflow
 import pandas as pd
 from mlflow import MlflowClient
-from sklearn import pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import HistGradientBoostingRegressor, RandomForestRegressor
 from sklearn.impute import SimpleImputer
@@ -46,10 +27,6 @@ CATEGORICAL_COLS = ["tipopozo", "tipoextraccion", "tipoestado", "formacion", "fo
                      "tipo_de_recurso", "sub_tipo_recurso", "clasificacion", "subclasificacion",
                      "provincia", "cuenca", "areayacimiento", "areapermisoconcesion"]
 
-# Antes de sacar las constantes (ver drop_constant_columns). iny_gas, iny_co2,
-# iny_otro y vida_util están siempre en 0.0 en este dataset - confirmado en el
-# notebook (celda 11) - pero se vuelven a chequear acá en vez de hardcodear la
-# lista final, para no asumir que va a seguir siendo cierto para siempre.
 NUMERIC_COLS_RAW = ["prod_pet", "prod_gas", "prod_agua", "iny_agua", "iny_gas", "iny_co2", "iny_otro",
                      "tef", "vida_util", "coordenadax", "coordenaday", "anio", "mes", "quarter",
                      "prod_pet_lag_1", "prod_pet_lag_2", "prod_pet_lag_3", "prod_pet_lag_4", "prod_pet_lag_5", "prod_pet_lag_6", "prod_pet_lag_12",
@@ -196,10 +173,6 @@ def main() -> None:
         X_train, y_train, X_val, y_val, common_params,
     )
 
-    # Mismo criterio que el notebook: RMSE de validación es la métrica principal.
-    # (La elección manual del notebook también pesó razones no métricas -
-    # velocidad de entrenamiento, memoria - que no son reproducibles acá; este
-    # script elige mecánicamente por la métrica, sea HGB o RF el que gane.)
     best = min(hgb_results + rf_results, key=lambda r: r["val_rmse"])
     print(f"Mejor configuración por val_rmse: {best['run_name']} ({best['model_type']}) -> {best['params']}")
 
