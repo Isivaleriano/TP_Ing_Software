@@ -2,6 +2,10 @@ fastapi==0.135.0
 uvicorn==0.34.0
 httpx
 ruff
-prometheus-fastapi-instrumentator
+prometheus-fastapi-instrumentator==7.1.0
 pandas
 matplotlib
+mlflow
+sqlalchemy
+psycopg2-binary
+scikit-learn
