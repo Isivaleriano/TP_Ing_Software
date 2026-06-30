@@ -66,6 +66,13 @@ All services are publicly available:
 
 All endpoints require the header `X-API-Key: abcdef12345`.
 
+### Forecast API
+
+The project exposes two forecasting endpoints:
+
+- **`/api/v1/forecast`** — original mock endpoint developed during Phases 1 and 2. It is kept for backward compatibility and demonstration purposes.
+- **`/api/v1/forecast/ml`** — machine learning inference endpoint introduced in Phase 3. This endpoint loads the Champion model from the MLflow Model Registry and retrieves the required features from the Gold Feature Store before generating the prediction.
+
 ### GET /api/v1/wells
 
 Returns the list of available wells for a given date.
