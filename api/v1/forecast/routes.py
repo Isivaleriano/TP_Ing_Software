@@ -91,7 +91,7 @@ def get_ml_forecast(
             forecasts_total.labels(status="error").inc()
             raise HTTPException(status_code=404, detail=str(e))
 
-        except Exception as e:
+        except Exception:
             forecasts_total.labels(status="error").inc()
             raise HTTPException(
                 status_code=500,
