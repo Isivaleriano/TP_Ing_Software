@@ -341,17 +341,23 @@ models:
           for the following calendar month. This value can be null in the
           Feature Store because the latest available records are required for
           inference.
+      - name: target_prod_gas_next_month
+        description: >
+          Supervised learning target representing the gas production expected
+          for the following calendar month. This value can be null in the
+          Feature Store because the latest available records are required for
+          inference.
 
   - name: training_dataset_production
     description: Training dataset derived from feature_store_production. It keeps only
-      records where the supervised learning target is known, while preserving
-      rows with null lag features so that missing-value handling can be managed
-      by the ML training pipeline.
+      records where both supervised learning targets (oil and gas) are known,
+      while preserving rows with null lag features so that missing-value
+      handling can be managed by the ML training pipeline.
 
     meta:
       owner: "team-data"
       team: "analytics"
-    
+
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
@@ -362,6 +368,12 @@ models:
     columns:
       - name: target_prod_pet_next_month
         description: Supervised learning target representing oil production for the
+          following calendar month. This field is required in the training
+          dataset.
+        tests:
+          - not_null
+      - name: target_prod_gas_next_month
+        description: Supervised learning target representing gas production for the
           following calendar month. This field is required in the training
           dataset.
         tests:

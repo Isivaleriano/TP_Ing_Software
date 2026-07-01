@@ -10,6 +10,7 @@ import mlflow.pyfunc
 DB_URL = os.environ.get("DB_URL", "postgresql://oilgas:oilgas@localhost:5432/oilgas")
 MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI", "http://localhost:5001")
 MODEL_NAME = "oil_production_forecaster"
+MODEL_NAME_GAS = "gas_production_forecaster"
 CHAMPION_ALIAS = "Champion"
 
 CATEGORICAL_COLS = [
@@ -68,14 +69,14 @@ def load_features(idpozo: str, anio: int, mes: int) -> pd.DataFrame:
 
     return df
 
-def load_champion():
+def load_champion(model_name: str = MODEL_NAME):
     mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 
     client = MlflowClient()
-    version = client.get_model_version_by_alias(MODEL_NAME, CHAMPION_ALIAS)
+    version = client.get_model_version_by_alias(model_name, CHAMPION_ALIAS)
 
     model = mlflow.pyfunc.load_model(
-        f"models:/{MODEL_NAME}@{CHAMPION_ALIAS}"
+        f"models:/{model_name}@{CHAMPION_ALIAS}"
     )
 
     return model, version
@@ -83,7 +84,7 @@ def load_champion():
 
 def predict_one(idpozo: str, anio: int, mes: int) -> dict:
     df = load_features(idpozo, anio, mes)
-    model, version = load_champion()
+    model, version = load_champion(MODEL_NAME)
 
     prediction = float(model.predict(df[FEATURE_COLS])[0])
     target_anio, target_mes = next_period(anio, mes)
@@ -101,19 +102,47 @@ def predict_one(idpozo: str, anio: int, mes: int) -> dict:
     }
 
 
+def predict_one_gas(idpozo: str, anio: int, mes: int) -> dict:
+    df = load_features(idpozo, anio, mes)
+    model, version = load_champion(MODEL_NAME_GAS)
+
+    prediction = float(model.predict(df[FEATURE_COLS])[0])
+    target_anio, target_mes = next_period(anio, mes)
+
+    return {
+        "idpozo": idpozo,
+        "feature_anio": anio,
+        "feature_mes": mes,
+        "target_anio": target_anio,
+        "target_mes": target_mes,
+        "predicted_prod_gas": prediction,
+        "model_name": MODEL_NAME_GAS,
+        "model_version": version.version,
+        "model_alias": CHAMPION_ALIAS,
+    }
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--idpozo", required=True)
     parser.add_argument("--anio", type=int, required=True)
     parser.add_argument("--mes", type=int, required=True)
+    parser.add_argument("--commodity", choices=["oil", "gas"], default="oil")
 
     args = parser.parse_args()
 
-    result = predict_one(
-        idpozo=args.idpozo,
-        anio=args.anio,
-        mes=args.mes,
-    )
+    if args.commodity == "gas":
+        result = predict_one_gas(
+            idpozo=args.idpozo,
+            anio=args.anio,
+            mes=args.mes,
+        )
+    else:
+        result = predict_one(
+            idpozo=args.idpozo,
+            anio=args.anio,
+            mes=args.mes,
+        )
 
     print(result)
 

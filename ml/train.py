@@ -15,6 +15,8 @@ DB_URL = os.environ.get("DB_URL", "postgresql://oilgas:oilgas@localhost:5432/oil
 MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI", "http://localhost:5001")
 EXPERIMENT_NAME = "oil_production_forecasting"
 MODEL_NAME = "oil_production_forecaster"
+EXPERIMENT_NAME_GAS = "gas_production_forecasting"
+MODEL_NAME_GAS = "gas_production_forecaster"
 CHAMPION_ALIAS = "Champion"
 
 TEST_MONTHS = 6
@@ -34,6 +36,7 @@ NUMERIC_COLS_RAW = ["prod_pet", "prod_gas", "prod_agua", "iny_agua", "iny_gas", 
                      "prod_agua_lag_1", "prod_agua_lag_2", "prod_agua_lag_3", "prod_agua_lag_4", "prod_agua_lag_5", "prod_agua_lag_6", "prod_agua_lag_12"]
 
 TARGET = "target_prod_pet_next_month"
+TARGET_GAS = "target_prod_gas_next_month"
 
 HGB_PARAM_GRID = [
     {"max_iter": 100, "max_depth": 3, "learning_rate": 0.05, "l2_regularization": 0.0},
@@ -53,7 +56,7 @@ RF_PARAM_GRID = [
 def load_dataset() -> pd.DataFrame:
     engine = create_engine(DB_URL)
     df = pd.read_sql("SELECT * FROM gold.training_dataset_production", engine)
-    known = set(ID_COLS + CATEGORICAL_COLS + NUMERIC_COLS_RAW + [TARGET])
+    known = set(ID_COLS + CATEGORICAL_COLS + NUMERIC_COLS_RAW + [TARGET, TARGET_GAS])
     unclassified = set(df.columns) - known
     assert not unclassified, f"Columnas sin clasificar: {unclassified}"
     return df
@@ -135,23 +138,26 @@ def run_grid_search(model_type, param_grid, build_fn, X_train, y_train, X_val, y
     return results
 
 
-def main() -> None:
-    mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
-    mlflow.set_experiment(EXPERIMENT_NAME)
+def train_target(
+    target: str,
+    experiment_name: str,
+    model_name: str,
+    feature_cols: list[str],
+    numeric_cols: list[str],
+    train_df: pd.DataFrame,
+    validation_df: pd.DataFrame,
+    test_df: pd.DataFrame,
+) -> None:
+    mlflow.set_experiment(experiment_name)
 
-    df = load_dataset()
-    numeric_cols = drop_constant_columns(df, NUMERIC_COLS_RAW)
-    feature_cols = CATEGORICAL_COLS + numeric_cols
-
-    train_df, validation_df, test_df = temporal_split(df)
-    X_train, y_train = train_df[feature_cols], train_df[TARGET]
-    X_val, y_val = validation_df[feature_cols], validation_df[TARGET]
-    X_test, y_test = test_df[feature_cols], test_df[TARGET]
+    X_train, y_train = train_df[feature_cols], train_df[target]
+    X_val, y_val = validation_df[feature_cols], validation_df[target]
+    X_test, y_test = test_df[feature_cols], test_df[target]
 
     common_params = {
         "split_strategy": "temporal_train_validation_test",
         "training_table": "gold.training_dataset_production",
-        "target": TARGET,
+        "target": target,
         "train_period_min": int(train_df["period"].min()),
         "train_period_max": int(train_df["period"].max()),
         "validation_period_min": int(validation_df["period"].min()),
@@ -160,7 +166,7 @@ def main() -> None:
         "test_period_max": int(test_df["period"].max()),
     }
 
-    print(f"Train: {X_train.shape} | Validation: {X_val.shape} | Test: {X_test.shape}")
+    print(f"[{target}] Train: {X_train.shape} | Validation: {X_val.shape} | Test: {X_test.shape}")
 
     hgb_results = run_grid_search(
         "HistGradientBoostingRegressor", HGB_PARAM_GRID,
@@ -174,10 +180,10 @@ def main() -> None:
     )
 
     best = min(hgb_results + rf_results, key=lambda r: r["val_rmse"])
-    print(f"Mejor configuración por val_rmse: {best['run_name']} ({best['model_type']}) -> {best['params']}")
+    print(f"[{target}] Mejor configuración por val_rmse: {best['run_name']} ({best['model_type']}) -> {best['params']}")
 
     final_train_df = pd.concat([train_df, validation_df])
-    X_final_train, y_final_train = final_train_df[feature_cols], final_train_df[TARGET]
+    X_final_train, y_final_train = final_train_df[feature_cols], final_train_df[target]
 
     if best["model_type"] == "HistGradientBoostingRegressor":
         final_pipeline = build_hgb_pipeline(best["params"])
@@ -186,7 +192,7 @@ def main() -> None:
 
     final_pipeline.fit(X_final_train, y_final_train)
     test_metrics = evaluate(final_pipeline, X_test, y_test)
-    print(f"Modelo final en test -> MAE={test_metrics['mae']:.2f} "
+    print(f"[{target}] Modelo final en test -> MAE={test_metrics['mae']:.2f} "
           f"RMSE={test_metrics['rmse']:.2f} R2={test_metrics['r2']:.3f}")
 
     with mlflow.start_run(run_name="Champion_candidate"):
@@ -205,16 +211,35 @@ def main() -> None:
         model_info = mlflow.sklearn.log_model(
             sk_model=final_pipeline,
             name="model",
-            registered_model_name=MODEL_NAME,
+            registered_model_name=model_name,
             serialization_format=mlflow.sklearn.SERIALIZATION_FORMAT_CLOUDPICKLE
         )
 
     client = MlflowClient()
-    client.set_registered_model_alias(MODEL_NAME, CHAMPION_ALIAS, model_info.registered_model_version)
+    client.set_registered_model_alias(model_name, CHAMPION_ALIAS, model_info.registered_model_version)
 
-    print(f"Champion model: {MODEL_NAME}")
-    print(f"Version: {model_info.registered_model_version}")
-    print(f"URI: models:/{MODEL_NAME}@{CHAMPION_ALIAS}")
+    print(f"[{target}] Champion model: {model_name}")
+    print(f"[{target}] Version: {model_info.registered_model_version}")
+    print(f"[{target}] URI: models:/{model_name}@{CHAMPION_ALIAS}")
+
+
+def main() -> None:
+    mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+
+    df = load_dataset()
+    numeric_cols = drop_constant_columns(df, NUMERIC_COLS_RAW)
+    feature_cols = CATEGORICAL_COLS + numeric_cols
+
+    train_df, validation_df, test_df = temporal_split(df)
+
+    train_target(
+        TARGET, EXPERIMENT_NAME, MODEL_NAME,
+        feature_cols, numeric_cols, train_df, validation_df, test_df,
+    )
+    train_target(
+        TARGET_GAS, EXPERIMENT_NAME_GAS, MODEL_NAME_GAS,
+        feature_cols, numeric_cols, train_df, validation_df, test_df,
+    )
 
 
 if __name__ == "__main__":

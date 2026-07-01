@@ -83,7 +83,8 @@ features as (
         pet_lag_6.prod_agua as prod_agua_lag_6,
         pet_lag_12.prod_agua as prod_agua_lag_12,
 
-        target.prod_pet as target_prod_pet_next_month
+        target.prod_pet as target_prod_pet_next_month,
+        target.prod_gas as target_prod_gas_next_month
 
     from base b
 
