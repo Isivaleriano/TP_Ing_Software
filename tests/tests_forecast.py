@@ -272,3 +272,51 @@ class TestForecast(unittest.TestCase):
         )
 
         self.assertEqual(response.status_code, 422)
+
+    @patch("api.v1.forecast.routes.predict_one_gas")
+    def test_ml_forecast_gas_success(self, mock_predict_one_gas):
+        """GET /forecast/ml returns gas prediction when commodity=gas."""
+        mock_predict_one_gas.return_value = {
+            "idpozo": "166925",
+            "feature_anio": 2026,
+            "feature_mes": 1,
+            "target_anio": 2026,
+            "target_mes": 2,
+            "predicted_prod_gas": 12000.5,
+            "model_name": "gas_production_forecaster",
+            "model_version": "1",
+            "model_alias": "Champion",
+        }
+
+        response = self.client.get(
+            route_forecast_ml,
+            params={
+                "idpozo": "166925",
+                "anio": 2026,
+                "mes": 1,
+                "commodity": "gas",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["idpozo"], "166925")
+        self.assertEqual(response.json()["predicted_prod_gas"], 12000.5)
+        mock_predict_one_gas.assert_called_once_with(
+            idpozo="166925",
+            anio=2026,
+            mes=1,
+        )
+
+    def test_ml_forecast_invalid_commodity(self):
+        """GET /forecast/ml validates commodity."""
+        response = self.client.get(
+            route_forecast_ml,
+            params={
+                "idpozo": "166925",
+                "anio": 2026,
+                "mes": 1,
+                "commodity": "water",
+            },
+        )
+    
+        self.assertEqual(response.status_code, 422)

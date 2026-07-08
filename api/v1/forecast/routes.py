@@ -5,8 +5,7 @@ from datetime import date
 from api.v1.security import get_api_key
 from prometheus_client import Counter, Histogram
 from typing import Annotated
-
-from ml.predict import predict_one  
+from ml.predict import predict_one, predict_one_gas
 from pydantic import BaseModel
 
 router = APIRouter()
@@ -17,7 +16,8 @@ class ForecastMLResponse(BaseModel):
     feature_mes: int
     target_anio: int
     target_mes: int
-    predicted_prod_pet: float
+    predicted_prod_pet: float | None = None
+    predicted_prod_gas: float | None = None
     model_name: str
     model_version: str
     model_alias: str
@@ -70,19 +70,15 @@ def get_ml_forecast(
     idpozo: str = Query(..., description="Identificador real del pozo en Gold"),
     anio: int = Query(..., ge=1900, le=2100),
     mes: int = Query(..., ge=1, le=12),
+    commodity: str = Query("oil", pattern="^(oil|gas)$"),
     api_key: str = Depends(get_api_key),
 ):
-    """
-    Generates a production forecast using the registered ML model.
-
-    :param idpozo: Well identifier.
-    :param anio: Feature year.
-    :param mes: Feature month.
-    :return: Predicted oil production for the following month.
-    """
     with forecast_duration_seconds.time():
         try:
-            result = predict_one(idpozo=idpozo, anio=anio, mes=mes)
+            if commodity == "gas":
+                result = predict_one_gas(idpozo=idpozo, anio=anio, mes=mes)
+            else:
+                result = predict_one(idpozo=idpozo, anio=anio, mes=mes)
 
             forecasts_total.labels(status="success").inc()
             return result

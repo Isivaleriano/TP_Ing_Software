@@ -20,8 +20,8 @@ CATEGORICAL_COLS = [
 ]
 
 NUMERIC_COLS = [
-    "prod_pet", "prod_gas", "prod_agua", "iny_agua", "iny_gas",
-    "tef", "coordenadax", "coordenaday", "anio", "mes", "quarter",
+    "prod_pet", "prod_gas", "prod_agua", "iny_agua", "iny_gas", "iny_co2", "iny_otro",
+    "tef", "vida_util", "coordenadax", "coordenaday", "anio", "mes", "quarter",
     "prod_pet_lag_1", "prod_pet_lag_2", "prod_pet_lag_3", "prod_pet_lag_4",
     "prod_pet_lag_5", "prod_pet_lag_6", "prod_pet_lag_12",
     "prod_gas_lag_1", "prod_gas_lag_2", "prod_gas_lag_3", "prod_gas_lag_4",
