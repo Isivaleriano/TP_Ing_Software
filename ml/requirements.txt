@@ -1,0 +1,8 @@
+# Dependencies for mlflow/train.py and mlflow/predict.py (and for running
+# notebooks/02_mlflow_training_experiment.ipynb). Pinned to match the server
+# image in mlflow/Dockerfile, to avoid CLI/server schema drift.
+mlflow==3.14.0
+scikit-learn==1.9.0
+pandas==2.3.3
+sqlalchemy==2.0.51
+psycopg2-binary==2.9.10

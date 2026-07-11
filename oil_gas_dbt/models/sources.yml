@@ -9,5 +9,27 @@ sources:
       - name: listed_wells
         description: "Raw well metadata ingested from datos.gob.ar."
 
+        columns:
+          - name: load_time
+            description: "UTC timestamp indicating when the ingestion process loaded the record into the Bronze layer."
+
+          - name: source_file
+            description: "Original source file used during ingestion."
+
+          - name: run_id
+            description: "Unique identifier of the ingestion execution."
+
       - name: wells_production
         description: "Raw monthly oil and gas production data ingested from datos.gob.ar."
+
+        columns:
+          - name: load_time
+            description: "UTC timestamp indicating when the ingestion process loaded the record into the Bronze layer."
+
+          - name: source_file
+            description: "Original source file used during ingestion."
+
+          - name: run_id
+            description: "Unique identifier of the ingestion execution."
+          - name: rectificado
+            description: "Flag indicating whether the production record was rectified in the source system"

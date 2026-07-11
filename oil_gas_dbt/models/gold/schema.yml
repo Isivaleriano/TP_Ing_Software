@@ -281,3 +281,100 @@ models:
               expression: ">= 0"
               config:
                 severity: warn
+  - name: feature_store_production
+    description: Machine Learning Feature Store used for model training and inference. This model consolidates all features already available in the Gold layer (fact_production, dim_well, dim_company, dim_location and dim_date) and enriches them with engineered temporal features based on historical production values. It keeps all available rows, including records where the future target is null, so it can also be used during inference.
+    meta:
+      owner: "team-data"
+      team: "analytics"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+          - idpozo
+          - anio
+          - mes
+    columns:
+      - name: prod_pet_lag_1
+        description: "Oil production recorded one calendar month before the current observation."
+      - name: prod_pet_lag_2
+        description: "Oil production recorded two calendar months before the current observation."
+      - name: prod_pet_lag_3
+        description: "Oil production recorded three calendar months before the current observation."
+      - name: prod_pet_lag_4
+        description: "Oil production recorded four calendar months before the current observation."
+      - name: prod_pet_lag_5
+        description: "Oil production recorded five calendar months before the current observation."
+      - name: prod_pet_lag_6
+        description: "Oil production recorded six calendar months before the current observation."
+      - name: prod_pet_lag_12
+        description: "Oil production recorded twelve calendar months before the current observation, capturing yearly production history."
+      - name: prod_gas_lag_1
+        description: "Gas production recorded one calendar month before the current observation."
+      - name: prod_gas_lag_2
+        description: "Gas production recorded two calendar months before the current observation."
+      - name: prod_gas_lag_3
+        description: "Gas production recorded three calendar months before the current observation."
+      - name: prod_gas_lag_4
+        description: "Gas production recorded four calendar months before the current observation."
+      - name: prod_gas_lag_5
+        description: "Gas production recorded five calendar months before the current observation."
+      - name: prod_gas_lag_6
+        description: "Gas production recorded six calendar months before the current observation."
+      - name: prod_gas_lag_12
+        description: "Gas production recorded twelve calendar months before the current observation."
+      - name: prod_agua_lag_1
+        description: "Water production recorded one calendar month before the current observation."
+      - name: prod_agua_lag_2
+        description: "Water production recorded two calendar months before the current observation."
+      - name: prod_agua_lag_3
+        description: "Water production recorded three calendar months before the current observation."
+      - name: prod_agua_lag_4
+        description: "Water production recorded four calendar months before the current observation."
+      - name: prod_agua_lag_5
+        description: "Water production recorded five calendar months before the current observation."
+      - name: prod_agua_lag_6
+        description: "Water production recorded six calendar months before the current observation."
+      - name: prod_agua_lag_12
+        description: "Water production recorded twelve calendar months before the current observation."
+      - name: target_prod_pet_next_month
+        description: >
+          Supervised learning target representing the oil production expected
+          for the following calendar month. This value can be null in the
+          Feature Store because the latest available records are required for
+          inference.
+      - name: target_prod_gas_next_month
+        description: >
+          Supervised learning target representing the gas production expected
+          for the following calendar month. This value can be null in the
+          Feature Store because the latest available records are required for
+          inference.
+
+  - name: training_dataset_production
+    description: Training dataset derived from feature_store_production. It keeps only
+      records where both supervised learning targets (oil and gas) are known,
+      while preserving rows with null lag features so that missing-value
+      handling can be managed by the ML training pipeline.
+
+    meta:
+      owner: "team-data"
+      team: "analytics"
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - idpozo
+            - anio
+            - mes
+
+    columns:
+      - name: target_prod_pet_next_month
+        description: Supervised learning target representing oil production for the
+          following calendar month. This field is required in the training
+          dataset.
+        tests:
+          - not_null
+      - name: target_prod_gas_next_month
+        description: Supervised learning target representing gas production for the
+          following calendar month. This field is required in the training
+          dataset.
+        tests:
+          - not_null

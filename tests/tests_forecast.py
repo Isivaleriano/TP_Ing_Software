@@ -1,11 +1,13 @@
-"""Tests for forecast endpoint"""
+"""Tests for forecast endpoints"""
 
 import unittest
+from unittest.mock import patch
 from fastapi.testclient import TestClient
 from api.v1.security import get_api_key
 from api.v1.main import app
 
 route_forecast  = "/api/v1/forecast"
+route_forecast_ml = "/api/v1/forecast/ml"
 
 class TestForecast(unittest.TestCase):
     def setUp(self) -> None:
@@ -211,3 +213,110 @@ class TestForecast(unittest.TestCase):
             },
         )
         self.assertEqual(response.status_code, 404)
+
+    @patch("api.v1.forecast.routes.predict_one")
+    def test_ml_forecast_success(self, mock_predict_one):
+        """GET /forecast/ml returns prediction when model succeeds."""
+        mock_predict_one.return_value = {
+            "idpozo": "166925",
+            "feature_anio": 2026,
+            "feature_mes": 1,
+            "target_anio": 2026,
+            "target_mes": 2,
+            "predicted_prod_pet": 6936.12,
+            "model_name": "oil_production_forecaster",
+            "model_version": "1",
+            "model_alias": "Champion",
+        }
+
+        response = self.client.get(
+            route_forecast_ml,
+            params={"idpozo": "166925", "anio": 2026, "mes": 1},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["idpozo"], "166925")
+        self.assertEqual(response.json()["predicted_prod_pet"], 6936.12)
+        mock_predict_one.assert_called_once_with(
+            idpozo="166925",
+            anio=2026,
+            mes=1,
+        )
+
+    @patch("api.v1.forecast.routes.predict_one")
+    def test_ml_forecast_not_found(self, mock_predict_one):
+        """GET /forecast/ml returns 404 when features are not found."""
+        mock_predict_one.side_effect = ValueError("No features found")
+
+        response = self.client.get(
+            route_forecast_ml,
+            params={"idpozo": "999999", "anio": 2026, "mes": 1},
+        )
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_ml_forecast_invalid_month(self):
+        """GET /forecast/ml validates month range."""
+        response = self.client.get(
+            route_forecast_ml,
+            params={"idpozo": "166925", "anio": 2026, "mes": 13},
+        )
+
+        self.assertEqual(response.status_code, 422)
+
+    def test_ml_forecast_missing_idpozo(self):
+        """GET /forecast/ml requires idpozo."""
+        response = self.client.get(
+            route_forecast_ml,
+            params={"anio": 2026, "mes": 1},
+        )
+
+        self.assertEqual(response.status_code, 422)
+
+    @patch("api.v1.forecast.routes.predict_one_gas")
+    def test_ml_forecast_gas_success(self, mock_predict_one_gas):
+        """GET /forecast/ml returns gas prediction when commodity=gas."""
+        mock_predict_one_gas.return_value = {
+            "idpozo": "166925",
+            "feature_anio": 2026,
+            "feature_mes": 1,
+            "target_anio": 2026,
+            "target_mes": 2,
+            "predicted_prod_gas": 12000.5,
+            "model_name": "gas_production_forecaster",
+            "model_version": "1",
+            "model_alias": "Champion",
+        }
+
+        response = self.client.get(
+            route_forecast_ml,
+            params={
+                "idpozo": "166925",
+                "anio": 2026,
+                "mes": 1,
+                "commodity": "gas",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["idpozo"], "166925")
+        self.assertEqual(response.json()["predicted_prod_gas"], 12000.5)
+        mock_predict_one_gas.assert_called_once_with(
+            idpozo="166925",
+            anio=2026,
+            mes=1,
+        )
+
+    def test_ml_forecast_invalid_commodity(self):
+        """GET /forecast/ml validates commodity."""
+        response = self.client.get(
+            route_forecast_ml,
+            params={
+                "idpozo": "166925",
+                "anio": 2026,
+                "mes": 1,
+                "commodity": "water",
+            },
+        )
+    
+        self.assertEqual(response.status_code, 422)

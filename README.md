@@ -66,6 +66,13 @@ All services are publicly available:
 
 All endpoints require the header `X-API-Key: abcdef12345`.
 
+### Forecast API
+
+The project exposes two forecasting endpoints:
+
+- **`/api/v1/forecast`** — original mock endpoint developed during Phases 1 and 2. It is kept for backward compatibility and demonstration purposes.
+- **`/api/v1/forecast/ml`** — machine learning inference endpoint introduced in Phase 3. This endpoint loads the Champion model from the MLflow Model Registry and retrieves the required features from the Gold Feature Store before generating the prediction.
+
 ### GET /api/v1/wells
 
 Returns the list of available wells for a given date.
@@ -206,15 +213,71 @@ Data quality checks are implemented using dbt tests covering:
 Results are persisted in the `quality.test_results` table in PostgreSQL and
 are visible in Metabase under the quality schema.
 
-### Data Governance
+### Feature Store
 
-Data governance is implemented through dbt documentation and DataHub:
+Two Gold dbt models support the production forecasting models (Phase 3):
+
+- `gold.feature_store_production` — every well-month, with lag features
+  (`prod_pet_lag_1`...`lag_12`, and the same for gas/water) computed by calendar
+  month rather than row position, so wells with gaps in their reporting history
+  don't get a mislabeled lag. Also includes `target_prod_pet_next_month` and
+  `target_prod_gas_next_month`, the supervised targets for next month's oil and
+  gas production. Includes each well's most recent month, used for inference.
+- `gold.training_dataset_production` — the same table filtered to rows where
+  both `target_prod_pet_next_month` and `target_prod_gas_next_month` are known,
+  used for training.
+
+### Model Training (MLflow)
+
+Two independent forecasting models are trained from `gold.training_dataset_production`,
+one per target — next month's oil production and next month's gas production.
+Both follow the same pipeline, only the target column and MLflow experiment/model
+name differ:
+
+| Commodity | Target column | MLflow experiment | Registered model |
+|-----------|----------------|--------------------|-------------------|
+| Oil | `target_prod_pet_next_month` | `oil_production_forecasting` | `oil_production_forecaster` |
+| Gas | `target_prod_gas_next_month` | `gas_production_forecasting` | `gas_production_forecaster` |
+
+`ml/train.py`:
+- Splits the dataset temporally into train / validation / test (last 6 months
+  held out for test, prior 6 months for validation).
+- Runs a grid search over `HistGradientBoostingRegressor` and `RandomForestRegressor`
+  configurations for each target, logging every run (params + val metrics) to MLflow.
+- Refits the best configuration on train+validation, evaluates on the held-out
+  test set, and registers it in the MLflow Model Registry with the `Champion`
+  alias.
 
 ```bash
-dbt docs generate
+python ml/train.py
 ```
 
-Open DataHub at `http://localhost:9002`.
+`ml/predict.py` loads the `Champion` model for a given commodity and predicts
+next month's production for a well from its current features in
+`gold.feature_store_production`:
+
+```bash
+python ml/predict.py --idpozo 10073 --anio 2026 --mes 5                 # oil (default)
+python ml/predict.py --idpozo 10073 --anio 2026 --mes 5 --commodity gas # gas
+```
+
+The MLflow tracking UI runs at `http://localhost:5001` (or the deployed host) via the `mlflow` service in `docker-compose.yml`.
+
+### Data Governance
+
+Data governance is implemented through dbt documentation and a DataHub catalog
+(search, ownership, docs, and lineage across Bronze, Silver and Gold).
+
+DataHub is **not part of the public live demo** above — it does not run on the EC2 instance. It runs on demand via Docker Compose, on whichever machine needs to browse it:
+
+```bash
+docker compose -f datahub/docker-compose.yml up -d
+cd oil_gas_dbt && dbt docs generate && cd ..
+./datahub/ingest.sh
+```
+
+Once running, the catalog and lineage graph are browsable at `http://localhost:9002`
+(login `datahub` / `datahub`). See [datahub/README.md](datahub/README.md) for details.
 
 ### Running the pipeline manually
 
@@ -244,6 +307,11 @@ TP_Ing_Software/
 │       └── security.py
 ├── dags/
 │   └── oil_gas_pipeline.py
+├── datahub/
+│   ├── docker-compose.yml
+│   ├── recipe_postgres.yml
+│   ├── recipe_dbt.yml
+│   └── ingest.sh
 ├── monitoring/
 │   ├── grafana/
 │   └── prometheus/

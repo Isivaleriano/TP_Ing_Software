@@ -1,0 +1,246 @@
+# Standalone DataHub catalog/governance stack.
+#
+# This is intentionally kept separate from the project's main ../docker-compose.yml:
+# DataHub needs its own Kafka, MySQL and OpenSearch backend, and it is NOT part of the
+# shared EC2 deployment described in the README. Anyone who needs to browse the catalog
+# or lineage graph runs it on demand, locally, with:
+#
+#   docker compose -f datahub/docker-compose.yml up -d
+#
+# Once datahub-gms is healthy (`docker compose -f datahub/docker-compose.yml ps`), the
+# catalog UI is at http://localhost:9002 and the ingestion recipes in this folder can be
+# run against http://localhost:8080 (see ingest.sh and recipe_*.yml).
+#
+# Note: datahub-gms publishes host port 8080 by default, same as this project's main
+# docker-compose.yml `webhook-receiver` service. If you need both stacks running at the
+# same time on the same machine, set DATAHUB_GMS_PORT (e.g. 8081) before starting this one.
+#
+# To stop and remove the stack, including its data volumes (catalog contents, Kafka
+# topics, search index):
+#   docker compose -f datahub/docker-compose.yml down -v
+name: datahub
+
+services:
+  broker:
+    image: confluentinc/cp-kafka:8.0.0
+    container_name: datahub-broker
+    hostname: broker
+    restart: unless-stopped
+    command:
+      - /bin/bash
+      - -c
+      - |
+        file_path="/var/lib/kafka/data/clusterID"
+        if [ ! -f "$$file_path" ]; then
+          /bin/kafka-storage random-uuid > "$$file_path"
+          kafka-storage format --ignore-formatted -t "$$(cat "$$file_path")" -c /etc/kafka/kafka.properties
+        fi
+        export CLUSTER_ID="$$(cat "$$file_path")"
+        /etc/confluent/docker/run
+    environment:
+      KAFKA_NODE_ID: "1"
+      KAFKA_BROKER_ID: "1"
+      KAFKA_PROCESS_ROLES: controller, broker
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@broker:39092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENERS: BROKER://broker:29092,EXTERNAL://broker:9092,CONTROLLER://broker:39092
+      KAFKA_ADVERTISED_LISTENERS: BROKER://broker:29092,EXTERNAL://localhost:${DATAHUB_KAFKA_PORT:-9092}
+      KAFKA_INTER_BROKER_LISTENER_NAME: BROKER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,BROKER:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: "0"
+      KAFKA_CONFLUENT_SUPPORT_METRICS_ENABLE: "false"
+      KAFKA_LOG4J_LOGGERS: org.apache.kafka.image.loader.MetadataLoader=WARN
+      KAFKA_HEAP_OPTS: -Xms512m -Xmx512m
+      KAFKA_MAX_MESSAGE_BYTES: "5242880"
+      KAFKA_MESSAGE_MAX_BYTES: "5242880"
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z broker 9092"]
+      interval: 1s
+      timeout: 5s
+      retries: 5
+      start_period: 1m
+    ports:
+      - "${DATAHUB_KAFKA_PORT:-9092}:9092"
+    volumes:
+      - broker:/var/lib/kafka/data
+
+  mysql:
+    image: mysql:8.2
+    container_name: datahub-mysql
+    hostname: mysql
+    restart: on-failure
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_bin
+      - --default-authentication-plugin=caching_sha2_password
+    environment:
+      MYSQL_ROOT_PASSWORD: datahub
+      MYSQL_ROOT_HOST: "%"
+      MYSQL_USER: datahub
+      MYSQL_PASSWORD: datahub
+      MYSQL_DATABASE: datahub
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h mysql -u $$MYSQL_USER --password=$$MYSQL_PASSWORD"]
+      interval: 2s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    ports:
+      - "${DATAHUB_MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysqldata:/var/lib/mysql
+
+  opensearch:
+    image: opensearchproject/opensearch:2.19.3
+    container_name: datahub-opensearch
+    hostname: search
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      DISABLE_SECURITY_PLUGIN: "true"
+      OPENSEARCH_JAVA_OPTS: -Xms768m -Xmx1024m -Dlog4j2.formatMsgNoLookups=true
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sS --fail 'http://search:9200/_cluster/health?wait_for_status=yellow&timeout=0s'"]
+      interval: 5s
+      timeout: 15s
+      retries: 10
+      start_period: 1m
+    ports:
+      - "${DATAHUB_OPENSEARCH_PORT:-9200}:9200"
+    volumes:
+      - osdata:/usr/share/opensearch/data
+
+  # One-shot job: creates Kafka topics, the MySQL schema and the OpenSearch indices.
+  # Must finish successfully before datahub-gms is allowed to start.
+  datahub-upgrade:
+    image: acryldata/datahub-upgrade:${DATAHUB_VERSION:-v1.5.0.6}
+    container_name: datahub-upgrade
+    hostname: datahub-system-update
+    command: ["-u", "SystemUpdate"]
+    depends_on:
+      broker:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+      opensearch:
+        condition: service_healthy
+    environment:
+      DATAHUB_GMS_HOST: datahub-gms
+      DATAHUB_GMS_PORT: "8080"
+      EBEAN_DATASOURCE_DRIVER: com.mysql.jdbc.Driver
+      EBEAN_DATASOURCE_HOST: mysql:3306
+      EBEAN_DATASOURCE_URL: jdbc:mysql://mysql:3306/datahub?verifyServerCertificate=false&useSSL=true&useUnicode=yes&characterEncoding=UTF-8&enabledTLSProtocols=TLSv1.2
+      EBEAN_DATASOURCE_USERNAME: root
+      EBEAN_DATASOURCE_PASSWORD: datahub
+      KAFKA_BOOTSTRAP_SERVER: broker:29092
+      KAFKA_SCHEMAREGISTRY_URL: http://datahub-gms:8080/schema-registry/api/
+      SCHEMA_REGISTRY_TYPE: INTERNAL
+      USE_CONFLUENT_SCHEMA_REGISTRY: "false"
+      ELASTICSEARCH_HOST: search
+      ELASTICSEARCH_PORT: "9200"
+      ELASTICSEARCH_PROTOCOL: http
+      ELASTICSEARCH_USE_SSL: "false"
+      ELASTICSEARCH_IMPLEMENTATION: opensearch
+      ELASTICSEARCH_BUILD_INDICES_CLONE_INDICES: "false"
+      ELASTICSEARCH_INDEX_BUILDER_MAPPINGS_REINDEX: "true"
+      ELASTICSEARCH_INDEX_BUILDER_SETTINGS_REINDEX: "true"
+      ELASTICSEARCH_INDEX_BUILDER_REFRESH_INTERVAL_SECONDS: "3"
+      GRAPH_SERVICE_IMPL: elasticsearch
+      ENTITY_REGISTRY_CONFIG_PATH: /datahub/datahub-gms/resources/entity-registry.yml
+      ENTITY_VERSIONING_ENABLED: "true"
+      DATAHUB_PRECREATE_TOPICS: "true"
+      DATAHUB_SQL_SETUP_ENABLED: "true"
+      DATAHUB_TOKEN_SERVICE_SALT: ${DATAHUB_TOKEN_SERVICE_SALT:-tp-ing-software-quickstart-salt}
+      DATAHUB_TOKEN_SERVICE_SIGNING_KEY: ${DATAHUB_TOKEN_SERVICE_SIGNING_KEY:-tp-ing-software-quickstart-signing-key}
+      REPROCESS_DEFAULT_BROWSE_PATHS_V2: "false"
+      BACKFILL_BROWSE_PATHS_V2: "true"
+      PARTITIONS: "3"
+
+  datahub-gms:
+    image: acryldata/datahub-gms:${DATAHUB_VERSION:-v1.5.0.6}
+    container_name: datahub-gms
+    hostname: datahub-gms
+    restart: unless-stopped
+    depends_on:
+      datahub-upgrade:
+        condition: service_completed_successfully
+    environment:
+      DATAHUB_SERVER_TYPE: quickstart
+      DATAHUB_TELEMETRY_ENABLED: "false"
+      DATAHUB_TOKEN_SERVICE_SALT: ${DATAHUB_TOKEN_SERVICE_SALT:-tp-ing-software-quickstart-salt}
+      DATAHUB_TOKEN_SERVICE_SIGNING_KEY: ${DATAHUB_TOKEN_SERVICE_SIGNING_KEY:-tp-ing-software-quickstart-signing-key}
+      DATAHUB_UPGRADE_HISTORY_KAFKA_CONSUMER_GROUP_ID: generic-duhe-consumer-job-client-gms
+      EBEAN_DATASOURCE_DRIVER: com.mysql.jdbc.Driver
+      EBEAN_DATASOURCE_HOST: mysql:3306
+      EBEAN_DATASOURCE_URL: jdbc:mysql://mysql:3306/datahub?verifyServerCertificate=false&useSSL=true&useUnicode=yes&characterEncoding=UTF-8&enabledTLSProtocols=TLSv1.2
+      EBEAN_DATASOURCE_USERNAME: root
+      EBEAN_DATASOURCE_PASSWORD: datahub
+      KAFKA_BOOTSTRAP_SERVER: broker:29092
+      KAFKA_SCHEMAREGISTRY_URL: http://datahub-gms:8080/schema-registry/api/
+      SCHEMA_REGISTRY_TYPE: INTERNAL
+      ELASTICSEARCH_HOST: search
+      ELASTICSEARCH_PORT: "9200"
+      ELASTICSEARCH_PROTOCOL: http
+      ELASTICSEARCH_USE_SSL: "false"
+      ELASTICSEARCH_IMPLEMENTATION: opensearch
+      ELASTICSEARCH_INDEX_BUILDER_MAPPINGS_REINDEX: "true"
+      ELASTICSEARCH_INDEX_BUILDER_SETTINGS_REINDEX: "true"
+      ES_BULK_REFRESH_POLICY: WAIT_UNTIL
+      GRAPH_SERVICE_IMPL: elasticsearch
+      GRAPH_SERVICE_DIFF_MODE_ENABLED: "true"
+      ENTITY_REGISTRY_CONFIG_PATH: /datahub/datahub-gms/resources/entity-registry.yml
+      ENTITY_SERVICE_ENABLE_RETENTION: "true"
+      ENTITY_VERSIONING_ENABLED: "true"
+      MAE_CONSUMER_ENABLED: "true"
+      MCE_CONSUMER_ENABLED: "true"
+      PE_CONSUMER_ENABLED: "true"
+      METADATA_SERVICE_AUTH_ENABLED: "false"
+      UI_INGESTION_ENABLED: "true"
+      JAVA_OPTS: -Xms1g -Xmx1g
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sS --fail http://datahub-gms:8080/health"]
+      interval: 1s
+      timeout: 5s
+      retries: 3
+      start_period: 1m30s
+    ports:
+      - "${DATAHUB_GMS_PORT:-8080}:8080"
+    volumes:
+      - gms-plugins:/etc/datahub/plugins
+      - gms-search-config:/etc/datahub/search
+
+  datahub-frontend:
+    image: acryldata/datahub-frontend-react:${DATAHUB_VERSION:-v1.5.0.6}
+    container_name: datahub-frontend
+    hostname: datahub-frontend-react
+    restart: unless-stopped
+    depends_on:
+      datahub-gms:
+        condition: service_healthy
+    environment:
+      DATAHUB_GMS_HOST: datahub-gms
+      DATAHUB_GMS_PORT: "8080"
+      DATAHUB_SECRET: ${DATAHUB_FRONTEND_SECRET:-YouKnowNothing}
+      DATAHUB_APP_VERSION: "1.0"
+      DATAHUB_PLAY_MEM_BUFFER_SIZE: 10MB
+      DATAHUB_TRACKING_TOPIC: DataHubUsageEvent_v1
+      ELASTIC_CLIENT_HOST: search
+      ELASTIC_CLIENT_PORT: "9200"
+      KAFKA_BOOTSTRAP_SERVER: broker:29092
+      JAVA_OPTS: -Xms512m -Xmx512m -Dhttp.port=9002 -Dconfig.file=datahub-frontend/conf/application.conf -Djava.security.auth.login.config=datahub-frontend/conf/jaas.conf -Dlogback.configurationFile=datahub-frontend/conf/logback.xml -Dlogback.debug=false -Dpidfile.path=/dev/null
+    ports:
+      - "${DATAHUB_FRONTEND_PORT:-9002}:9002"
+    volumes:
+      - frontend-plugins:/etc/datahub/plugins
+
+volumes:
+  broker:
+    name: datahub_broker
+  mysqldata:
+    name: datahub_mysqldata
+  osdata:
+    name: datahub_osdata
+  gms-plugins:
+  gms-search-config:
+  frontend-plugins:
