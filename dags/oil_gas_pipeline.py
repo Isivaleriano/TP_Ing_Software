@@ -48,5 +48,18 @@ with DAG(
         task_id="persist_quality_results",
         bash_command="cd /opt/airflow/project && python src/quality/persist_dbt_results.py",
     )
+    
+    train_forecasting_models = BashOperator(
+        task_id="train_forecasting_models",
+        bash_command="""
+            cd /opt/airflow/project &&
+            /home/airflow/ml-env/bin/python ml/train.py
+        """,
+        env={
+            "DB_URL": "postgresql://oilgas:oilgas@oilgas_postgres:5432/oilgas",
+            "MLFLOW_TRACKING_URI": "http://mlflow:5000",
+        },
+        append_env=True,
+    )
 
-    extract >> load_bronze >> transform >> test >> persist_quality
+    extract >> load_bronze >> transform >> test >> persist_quality >> train_forecasting_models
