@@ -5,8 +5,23 @@ from datetime import date
 from api.v1.security import get_api_key
 from prometheus_client import Counter, Histogram
 from typing import Annotated
+from ml.predict import predict_one, predict_one_gas
+from pydantic import BaseModel
 
 router = APIRouter()
+
+class ForecastMLResponse(BaseModel):
+    idpozo: str
+    feature_anio: int
+    feature_mes: int
+    target_anio: int
+    target_mes: int
+    predicted_prod_pet: float | None = None
+    predicted_prod_gas: float | None = None
+    model_name: str
+    model_version: str
+    model_alias: str
+
 
 # ------- Metrics latency buissness
 forecast_duration_seconds = Histogram(
@@ -23,7 +38,7 @@ forecasts_total = Counter(
 VALID_WELLS = ["WELL-001", "WELL-002", "WELL-003"]
 
 @router.get("/forecast")
-def get_forecast(id_well: Annotated[str, Query(regex=r"^WELL-\d{3}$")], 
+def get_forecast(id_well: Annotated[str, Query(pattern=r"^WELL-\d{3}$")], 
                  date_start: date, 
                  date_end: date, 
                  api_key: str = Depends(get_api_key)):
@@ -49,3 +64,32 @@ def get_forecast(id_well: Annotated[str, Query(regex=r"^WELL-\d{3}$")],
         except Exception:
             forecasts_total.labels(status="error").inc()
             raise
+
+@router.get("/forecast/ml", response_model=ForecastMLResponse)
+def get_ml_forecast(
+    idpozo: str = Query(..., description="Identificador real del pozo en Gold"),
+    anio: int = Query(..., ge=1900, le=2100),
+    mes: int = Query(..., ge=1, le=12),
+    commodity: str = Query("oil", pattern="^(oil|gas)$"),
+    api_key: str = Depends(get_api_key),
+):
+    with forecast_duration_seconds.time():
+        try:
+            if commodity == "gas":
+                result = predict_one_gas(idpozo=idpozo, anio=anio, mes=mes)
+            else:
+                result = predict_one(idpozo=idpozo, anio=anio, mes=mes)
+
+            forecasts_total.labels(status="success").inc()
+            return result
+
+        except ValueError as e:
+            forecasts_total.labels(status="error").inc()
+            raise HTTPException(status_code=404, detail=str(e))
+
+        except Exception:
+            forecasts_total.labels(status="error").inc()
+            raise HTTPException(
+                status_code=500,
+                detail="Internal error while generating ML forecast",
+            )

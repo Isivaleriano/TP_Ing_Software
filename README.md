@@ -66,6 +66,13 @@ All services are publicly available:
 
 All endpoints require the header `X-API-Key: abcdef12345`.
 
+### Forecast API
+
+The project exposes two forecasting endpoints:
+
+- **`/api/v1/forecast`** — original mock endpoint developed during Phases 1 and 2. It is kept for backward compatibility and demonstration purposes.
+- **`/api/v1/forecast/ml`** — machine learning inference endpoint introduced in Phase 3. This endpoint loads the Champion model from the MLflow Model Registry and retrieves the required features from the Gold Feature Store before generating the prediction.
+
 ### GET /api/v1/wells
 
 Returns the list of available wells for a given date.
@@ -208,15 +215,53 @@ are visible in Metabase under the quality schema.
 
 ### Feature Store
 
-Two Gold dbt models support the production forecasting model (Phase 3):
+Two Gold dbt models support the production forecasting models (Phase 3):
 
 - `gold.feature_store_production` — every well-month, with lag features
   (`prod_pet_lag_1`...`lag_12`, and the same for gas/water) computed by calendar
   month rather than row position, so wells with gaps in their reporting history
-  don't get a mislabeled lag. Includes each well's most recent month, used for
-  inference.
-- `gold.training_dataset_production` — the same table filtered to rows with a
-  known `target_prod_pet_next_month`, used for training.
+  don't get a mislabeled lag. Also includes `target_prod_pet_next_month` and
+  `target_prod_gas_next_month`, the supervised targets for next month's oil and
+  gas production. Includes each well's most recent month, used for inference.
+- `gold.training_dataset_production` — the same table filtered to rows where
+  both `target_prod_pet_next_month` and `target_prod_gas_next_month` are known,
+  used for training.
+
+### Model Training (MLflow)
+
+Two independent forecasting models are trained from `gold.training_dataset_production`,
+one per target — next month's oil production and next month's gas production.
+Both follow the same pipeline, only the target column and MLflow experiment/model
+name differ:
+
+| Commodity | Target column | MLflow experiment | Registered model |
+|-----------|----------------|--------------------|-------------------|
+| Oil | `target_prod_pet_next_month` | `oil_production_forecasting` | `oil_production_forecaster` |
+| Gas | `target_prod_gas_next_month` | `gas_production_forecasting` | `gas_production_forecaster` |
+
+`ml/train.py`:
+- Splits the dataset temporally into train / validation / test (last 6 months
+  held out for test, prior 6 months for validation).
+- Runs a grid search over `HistGradientBoostingRegressor` and `RandomForestRegressor`
+  configurations for each target, logging every run (params + val metrics) to MLflow.
+- Refits the best configuration on train+validation, evaluates on the held-out
+  test set, and registers it in the MLflow Model Registry with the `Champion`
+  alias.
+
+```bash
+python ml/train.py
+```
+
+`ml/predict.py` loads the `Champion` model for a given commodity and predicts
+next month's production for a well from its current features in
+`gold.feature_store_production`:
+
+```bash
+python ml/predict.py --idpozo 10073 --anio 2026 --mes 5                 # oil (default)
+python ml/predict.py --idpozo 10073 --anio 2026 --mes 5 --commodity gas # gas
+```
+
+The MLflow tracking UI runs at `http://localhost:5001` (or the deployed host) via the `mlflow` service in `docker-compose.yml`.
 
 ### Data Governance
 
