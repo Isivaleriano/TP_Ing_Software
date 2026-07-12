@@ -51,13 +51,14 @@ All services are publicly available:
 
 | Service | URL | Credentials |
 |---------|-----|-------------|
-| Swagger UI | http://100.58.114.58:8000/docs | X-API-Key: abcdef12345 |
-| OpenAPI JSON | http://100.58.114.58:8000/openapi.json | - |
-| Metrics | http://100.58.114.58:8000/metrics | - |
-| Prometheus | http://100.58.114.58:9090 | - |
-| Grafana | http://100.58.114.58:3001 | admin / Software_tp |
-| Airflow | http://100.58.114.58:8090 | admin / admin |
-| Metabase | http://100.58.114.58:3000 | - |
+| Swagger UI | http://54.205.10.224:8000/docs | X-API-Key: abcdef12345 |
+| OpenAPI JSON | http://54.205.10.224:8000/openapi.json | - |
+| Metrics | http://54.205.10.224:8000/metrics | - |
+| Prometheus | http://54.205.10.224:9090 | - |
+| Grafana | http://54.205.10.224:3001 | admin / Software_tp |
+| Airflow | http://54.205.10.224:8090 | admin / admin |
+| MLflow | http://54.205.10.224:5001 | - |
+| Metabase | http://54.205.10.224:3000 | - |
 
 > **Note:** The EC2 instance has a dynamic public IP that changes on restart.
 > Contact the team for the current URL during the correction period.
@@ -143,7 +144,7 @@ automatically builds, publishes and deploys the new image to the EC2 instance.
 
 Two GitHub Actions workflows are configured:
 
-- **tests.yml** — runs on every push and pull request. Executes unit tests and linter.
+- **tests.yml** — runs on every push and pull request. Executes unit tests, linter and dbt data quality tests (`dbt run` + `dbt test`).
 - **docker_publish.yml** — runs on push to `main`. Builds and publishes the Docker image to GitHub Container Registry, then deploys automatically to EC2.
 
 ## Running tests
@@ -160,7 +161,7 @@ A monitoring dashboard is implemented using **Prometheus** and **Grafana**.
 - **Prometheus** scrapes metrics every 15 seconds
 - **Grafana** visualizes data and manages alerting
 
-Access Grafana at `http://100.58.114.58:3001` (admin / Software_tp).
+Access Grafana at `http://54.205.10.224:3001` (admin / Software_tp).
 
 An alerting system detects service outages, high error rates and performance degradation.
 
@@ -190,9 +191,10 @@ The DAG `oil_gas_pipeline` runs daily at 06:00 UTC with the following tasks:
 3. `dbt_run` — builds Silver and Gold layers
 4. `dbt_test` — runs data quality checks
 5. `persist_quality_results` — persists test results to PostgreSQL
+6. `train_forecasting_models` — trains the forecasting models and registers them in MLflow.
 
 To update the workflows, trigger a new DAG run from the Airflow UI at
-`http://100.58.114.58:8090` or push a change to `main`.
+`http://54.205.10.224:8090` or push a change to `main`.
 
 ### BI Platform
 
@@ -261,7 +263,9 @@ python ml/predict.py --idpozo 10073 --anio 2026 --mes 5                 # oil (d
 python ml/predict.py --idpozo 10073 --anio 2026 --mes 5 --commodity gas # gas
 ```
 
-The MLflow tracking UI runs at `http://localhost:5001` (or the deployed host) via the `mlflow` service in `docker-compose.yml`.
+The MLflow tracking UI runs at `http://localhost:5001` locally and at `http://54.205.10.224:5001` in the deployed environment via the `mlflow` service in `docker-compose.yml`.
+
+Model training is also executed automatically by the `train_forecasting_models` Airflow task after the ETL pipeline and data quality checks complete successfully.
 
 ### Data Governance
 
@@ -285,6 +289,7 @@ Once running, the catalog and lineage graph are browsable at `http://localhost:9
 python src/ingestion/extract_data.py
 dbt run
 dbt test
+python ml/train.py
 ```
 
 ## Project structure
@@ -307,6 +312,10 @@ TP_Ing_Software/
 │       └── security.py
 ├── dags/
 │   └── oil_gas_pipeline.py
+├── ml/
+│   ├── predict.py
+│   ├── requirements.txt
+│   └── train.py
 ├── datahub/
 │   ├── docker-compose.yml
 │   ├── recipe_postgres.yml
@@ -334,6 +343,7 @@ TP_Ing_Software/
 ├── adrs/
 ├── docker-compose.yml
 ├── Dockerfile.airflow
+├── Dockerfile.mlflow
 ├── insomnia.yaml
 ├── openapi.yaml
 └── README.md
